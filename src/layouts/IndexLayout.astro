@@ -1,0 +1,57 @@
+---
+import '@/styles/global.css';
+import BaseHead from '@/components/BaseHead.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { themeConfig } from '@/config';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description} shell>
+  <BaseHead title={title} description={description} slot="head" />
+  <div class="page-content">
+    <Header />
+    <div class="toolbar">
+      <slot name="toolbar" />
+    </div>
+    <main class="scroll-area">
+      <slot />
+    </main>
+    {themeConfig.general.footer && <div class="footer-area"><Footer flush /></div>}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .toolbar {
+    flex: none;
+  }
+  /* 唯一可滚动区域：隐藏滚动条。页脚在它外面，因此不随列表滚动。 */
+  .scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scroll-area::-webkit-scrollbar {
+    display: none;
+  }
+  .footer-area {
+    flex: none;
+    padding-top: 0.75rem;
+  }
+</style>

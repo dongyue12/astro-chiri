@@ -1,0 +1,335 @@
+/* 正文排版。基于 Chiri 主题（MIT）精简：去掉本站未使用的脚注、任务列表、
+   KaTeX、iframe、figure 等规则。 */
+
+/* Base styles for all elements */
+.prose * {
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-m);
+}
+
+/* Main content container */
+.prose {
+  margin-bottom: 8rem;
+}
+
+/* Remove margin-top for the first child */
+.prose .content > :first-child {
+  margin-top: 0;
+}
+
+/* Post title section */
+.prose .title {
+  margin-bottom: 2.5em;
+}
+
+.prose .title h1 {
+  margin: 0 0 0.375rem 0;
+}
+
+/* Headings (h1-h5)
+ Adjust size or spacing below if needed. */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5 {
+  font-size: var(--font-size-m);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.75;
+  margin: 3.75em 0 1.75em 0;
+}
+
+/* Bold text */
+.prose strong,
+.prose b {
+  font-weight: var(--font-weight-bold);
+}
+
+/* Italic text */
+.prose em {
+  font-family: var(--serif);
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+/* Links */
+.prose a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--text-tertiary);
+  transition: text-decoration-color 0.2s ease-out;
+}
+
+.prose a:hover {
+  color: var(--text-primary);
+  text-decoration-color: var(--text-primary);
+}
+
+/* Paragraphs */
+.prose p {
+  line-height: 1.75;
+  margin: 1.75em 0;
+}
+
+/* Tables */
+.prose table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.75em 0;
+  font-size: var(--font-size-m);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Table cells */
+.prose th,
+.prose td {
+  border: none;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5em 1em;
+  text-align: left;
+}
+
+.prose th:last-child,
+.prose td:last-child {
+  border-right: none;
+}
+
+.prose tr:last-child td {
+  border-bottom: none;
+}
+
+.prose th {
+  background: var(--astro-code-background);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Images */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 2em 0;
+}
+
+/* Loading state for images */
+.prose img[loading='lazy'] {
+  opacity: 0;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Inline code */
+.prose code {
+  padding: 2.5px 3.5px;
+  border-radius: 5px;
+  background-color: var(--code-bg);
+  border: 0.5px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.9em;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+  -webkit-font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+}
+
+/* Blockquotes */
+.prose blockquote {
+  border-left: 2px solid var(--border);
+  margin: 0 0 1.75em 0.125em;
+  padding: 0 0 0 1.375em;
+  text-align: left;
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose blockquote cite {
+  display: inline-block;
+  margin-top: 0.5em;
+}
+
+.prose cite {
+  font-style: normal;
+}
+
+/* Unordered lists */
+.prose ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin-left: 1rem;
+  margin-bottom: 1.75em;
+  line-height: 1.75;
+}
+
+.prose ul ul {
+  margin-left: 0.625rem;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ul li {
+  position: relative;
+  padding-left: 0.125rem;
+  margin-bottom: 0.5em;
+}
+
+.prose ul li:last-child {
+  margin-bottom: 0;
+}
+
+.prose ul li > ul {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ul li::before {
+  --size: 0.3125rem;
+  content: '';
+  position: absolute;
+  left: -0.785rem;
+  top: calc((1.75em - var(--size)) / 2);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background-color: var(--text-tertiary);
+}
+
+/* Ordered lists */
+.prose ol {
+  list-style-position: outside;
+  padding-left: 0;
+  margin-left: 1.25rem;
+  margin-bottom: 1.75em;
+  counter-reset: item;
+}
+
+.prose ol li {
+  display: block;
+  position: relative;
+  padding-left: 0.125rem;
+  margin-bottom: 0.5em;
+}
+
+.prose ol li:last-child {
+  margin-bottom: 0;
+}
+
+.prose ol li::before {
+  content: counter(item) '.';
+  counter-increment: item;
+  position: absolute;
+  left: -1.15rem;
+  width: 1.5rem;
+  text-align: left;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 0,
+    'cv01' 1,
+    'cv02' 1,
+    'calt' 1,
+    'ss03' 1,
+    'liga' 1,
+    'ordn' 1;
+}
+
+/* Subscript and superscript */
+.prose sup,
+.prose sub,
+.prose sup a {
+  margin: 0 0.125em;
+  font-size: 0.875em;
+  line-height: 1;
+}
+
+/* Horizontal rule */
+.prose hr {
+  margin: 3.75em 0;
+  height: auto;
+  border: none;
+  background: none;
+  text-align: center;
+  position: relative;
+}
+
+.prose hr::before {
+  content: '***';
+  font-family: var(--mono);
+  color: var(--text-tertiary);
+  font-size: 0.875em;
+  letter-spacing: 0.25em;
+}
+
+/* Keyboard input */
+.prose kbd {
+  font-family: var(--mono);
+  font-size: var(--font-size-s);
+  border: 1px solid var(--text-tertiary);
+  padding: 1px 4px;
+  border-radius: 5px;
+  min-width: 1.75em;
+  display: inline-block;
+  text-align: center;
+}
+
+/* Highlighted text */
+.prose mark {
+  background-color: var(--mark);
+  color: var(--text-primary);
+  padding: 3px 1px;
+}
+
+/* Code blocks */
+.prose pre {
+  background-color: var(--astro-code-background);
+  border-radius: 8px;
+  padding: 1.25em 1.5em;
+  margin: 2em 0;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .prose pre {
+    padding: 1em 1.25em;
+  }
+}
+
+.prose pre > code {
+  font-family: var(--mono);
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+  display: block;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  line-height: 1.5;
+  border-radius: 0;
+}
+
+.prose pre > code * {
+  font-size: var(--font-size-s);
+}

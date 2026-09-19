@@ -1,0 +1,44 @@
+---
+import '@/styles/global.css';
+import { themeConfig } from '@/config';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** 固定视口外壳：页面本身不滚动，由内部区域滚动（首页列表用） */
+  shell?: boolean;
+}
+
+const { title, description, shell = false } = Astro.props;
+const { language } = themeConfig.site;
+
+// 内容栏宽度：上限 50rem，低于 25rem 时统一按 25rem 处理（与 Chiri 行为一致）
+const widthValue = Math.min(parseFloat(themeConfig.general.contentWidth), 50);
+const finalWidth = widthValue > 25 ? `${widthValue}rem` : '25rem';
+---
+
+<!doctype html>
+<html lang={language}>
+  <head>
+    <slot name="head" />
+  </head>
+  <body
+    data-centered={themeConfig.general.centeredLayout}
+    data-width
+    data-shell={shell ? 'true' : undefined}
+    style={`max-width: ${finalWidth}; --content-width: ${finalWidth};`}
+  >
+    <div class="layout-wrapper">
+      <slot />
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  .layout-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+</style>

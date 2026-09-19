@@ -1,0 +1,27 @@
+---
+import { themeConfig } from '@/config';
+---
+
+<header>
+  <nav>
+    <a class="site-title" href="/">{themeConfig.site.title}</a>
+  </nav>
+</header>
+
+<style>
+  header {
+    margin: 0;
+  }
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .site-title {
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    text-decoration: none;
+    min-width: 3rem;
+    display: inline-block;
+  }
+</style>
