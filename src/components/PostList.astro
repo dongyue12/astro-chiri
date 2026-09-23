@@ -20,7 +20,7 @@ const dateOnRight = themeConfig.date.dateOnRight;
   {
     posts.map((post) => (
       <li data-search={post.search}>
-        <a href={`/blog/${post.id}/`}>
+        <a href={`/${post.id}/`}>
           <div class:list={['post-item', !dateOnRight && 'date-left']}>
             {!dateOnRight && (
               <p class="date">
