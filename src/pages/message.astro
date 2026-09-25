@@ -1,0 +1,43 @@
+---
+import BaseHead from '@/components/BaseHead.astro';
+import Comments from '@/components/Comments.astro';
+import Footer from '@/components/Footer.astro';
+import Header from '@/components/Header.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { themeConfig } from '@/config';
+
+const title = `留言 · ${themeConfig.site.title}`;
+---
+
+<BaseLayout title={title}>
+  <BaseHead title={title} slot="head" />
+  <div class="page">
+    <Header />
+    <main>
+      <h1>留言</h1>
+      <p class="intro">欢迎在这里留言交流。</p>
+      <Comments title="" />
+    </main>
+    {themeConfig.general.footer && <Footer />}
+  </div>
+</BaseLayout>
+
+<style>
+  .page {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  main {
+    flex: 1;
+  }
+  h1 {
+    font-size: var(--font-size-m);
+    font-weight: var(--font-weight-bold);
+    margin: 1.5rem 0 0.5rem;
+  }
+  .intro {
+    color: var(--text-secondary);
+    margin: 0 0 2rem;
+  }
+</style>

@@ -1,0 +1,56 @@
+---
+/**
+ * giscus 评论，由 GitHub Discussions 驱动。文章页与留言页共用，避免把同一段配置抄两份。
+ *
+ * 几个刻意的选择：
+ * - 脚本上加了 is:inline，让 Astro 原样输出：giscus 全部靠 data-* 属性配置，
+ *   而 Astro 默认会处理带 src 的脚本，那样属性可能被改写，还会多出一个产物文件。
+ * - data-theme 用 preferred_color_scheme：本站配色纯靠 CSS 的 prefers-color-scheme 跟随系统，
+ *   该主题值同样跟随系统，两者天然一致，因此不需要额外 JS 去同步 giscus 配色。
+ * - data-loading 用 lazy：评论在长文章底部，滚到附近再加载 iframe。
+ * - data-mapping 用 pathname：讨论标题即页面路径，如 /3/ 或 /friends/，一个页面一个讨论。
+ */
+import { themeConfig } from '@/config';
+
+interface Props {
+  /** 小标题，留空则只渲染评论区、不渲染标题 */
+  title?: string;
+}
+
+const { title = '评论' } = Astro.props;
+// 传空字符串表示「只渲染评论区、不要标题」，此时仍需一个无障碍名称
+const label = title || '评论';
+const { language } = themeConfig.site;
+---
+
+<section class="comments" aria-label={label}>
+  {title && <h2>{title}</h2>}
+  <script
+    src="https://giscus.app/client.js"
+    data-repo="dongyue12/giscus"
+    data-repo-id="R_kgDOSakHjA"
+    data-category="Announcements"
+    data-category-id="DIC_kwDOSakHjM4C8zJM"
+    data-mapping="pathname"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="bottom"
+    data-theme="preferred_color_scheme"
+    data-loading="lazy"
+    data-lang={language}
+    crossorigin="anonymous"
+    async
+    is:inline></script>
+</section>
+
+<style>
+  .comments {
+    margin-bottom: 4rem;
+  }
+  .comments h2 {
+    font-size: var(--font-size-m);
+    font-weight: var(--font-weight-bold);
+    margin: 0 0 1.5rem;
+  }
+</style>

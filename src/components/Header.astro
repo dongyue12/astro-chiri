@@ -5,6 +5,10 @@ import { themeConfig } from '@/config';
 <header>
   <nav>
     <a class="site-title" href="/">{themeConfig.site.title}</a>
+    <div class="site-links">
+      <a href="/message/">留言</a>
+      <a href="/friends/">友链</a>
+    </div>
   </nav>
 </header>
 
@@ -23,5 +27,16 @@ import { themeConfig } from '@/config';
     text-decoration: none;
     min-width: 3rem;
     display: inline-block;
+  }
+  .site-links {
+    display: flex;
+    gap: 1rem;
+  }
+  .site-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .site-links a:hover {
+    color: var(--text-primary);
   }
 </style>

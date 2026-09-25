@@ -1,5 +1,6 @@
 ---
 import BaseHead from '@/components/BaseHead.astro';
+import Comments from '@/components/Comments.astro';
 import Footer from '@/components/Footer.astro';
 import FormattedDate from '@/components/FormattedDate.astro';
 import Header from '@/components/Header.astro';
@@ -38,6 +39,7 @@ const { title, pubDate, updatedDate } = Astro.props;
           <slot />
         </article>
       </div>
+      <Comments />
     </main>
     {themeConfig.general.footer && <Footer />}
     <div class="to-top-wrap">

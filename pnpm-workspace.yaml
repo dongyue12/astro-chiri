@@ -1,0 +1,6 @@
+# pnpm 11+ 把「允许执行安装脚本的依赖」等设置从 package.json 的 pnpm 字段移到了这里。
+# esbuild / sharp 都需要跑安装脚本才能取到本机原生二进制。
+# 依赖清单变化时，pnpm 会把新出现的待审批依赖以占位值写进来，需手动改成 true 或 false。
+allowBuilds:
+  esbuild: true
+  sharp: true

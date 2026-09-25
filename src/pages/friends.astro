@@ -1,0 +1,269 @@
+---
+import BaseHead from '@/components/BaseHead.astro';
+import Footer from '@/components/Footer.astro';
+import Header from '@/components/Header.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { themeConfig } from '@/config';
+
+const { self, links } = themeConfig.friends;
+const title = `友链 · ${themeConfig.site.title}`;
+
+// 展示/复制给别人用的必须是完整地址，而 img 可能写成 public 下的相对路径（如 /avatar.webp）
+const selfImg = new URL(self.img, themeConfig.site.website).href;
+
+// 无头像时用名字首字做占位（emoji 和汉字都按“一个字符”处理）
+function initial(name: string) {
+  return [...name.trim()][0] ?? '?';
+}
+---
+
+<BaseLayout title={title}>
+  <BaseHead title={title} slot="head" />
+  <div class="page">
+    <Header />
+    <main>
+      <h1>友链</h1>
+
+      <section class="self" aria-label="本站信息">
+        <p class="section-title">本站</p>
+        <div class="card">
+          <div class="row">
+            {
+              self.img ? (
+                <img class="avatar" src={self.img} alt="" width="40" height="40" loading="lazy" />
+              ) : (
+                <span class="avatar placeholder" aria-hidden="true">{initial(self.title)}</span>
+              )
+            }
+            <span class="meta">
+              <span class="name">{self.title}</span>
+              <span class="desc">{self.des}</span>
+            </span>
+            <button id="copy-info" class="copy" type="button">复制信息</button>
+          </div>
+          <dl class="info">
+            <dt>名称</dt><dd>{self.title}</dd>
+            <dt>地址</dt><dd>{self.link}</dd>
+            <dt>头像</dt><dd>{selfImg}</dd>
+            <dt>描述</dt><dd>{self.des}</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section aria-label="友链列表">
+        <p class="section-title">朋友们</p>
+        {
+          links.length ? (
+            <ul>
+              {links.map((friend) => (
+                <li>
+                  <a href={friend.url} target="_blank" rel="noopener noreferrer">
+                    {friend.avatar ? (
+                      <img
+                        class="avatar"
+                        src={friend.avatar}
+                        alt=""
+                        width="40"
+                        height="40"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span class="avatar placeholder" aria-hidden="true">
+                        {initial(friend.name)}
+                      </span>
+                    )}
+                    <span class="meta">
+                      <span class="name">{friend.name}</span>
+                      {friend.description && <span class="desc">{friend.description}</span>}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="empty">暂时还没有友链。</p>
+          )
+        }
+      </section>
+    </main>
+    {themeConfig.general.footer && <Footer />}
+  </div>
+</BaseLayout>
+
+<style>
+  .page {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  main {
+    flex: 1;
+  }
+  h1 {
+    font-size: var(--font-size-m);
+    font-weight: var(--font-weight-bold);
+    margin: 1.5rem 0 2rem;
+  }
+  .section-title {
+    color: var(--text-secondary);
+    font-size: var(--font-size-s);
+    font-weight: var(--font-weight-light);
+    margin: 0 0 0.75rem;
+  }
+  section + section {
+    margin-top: 2.5rem;
+  }
+  .card {
+    padding: 0.75rem;
+    border: 0.5px solid var(--border);
+    border-radius: 0.5rem;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .copy {
+    margin-left: auto;
+    flex-shrink: 0;
+    font: inherit;
+    font-size: var(--font-size-s);
+    color: var(--text-secondary);
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition:
+      color 0.15s ease-out,
+      border-color 0.15s ease-out;
+  }
+  .copy:hover {
+    color: var(--text-primary);
+    border-color: var(--text-tertiary);
+  }
+  /* 完整信息：字段名固定宽度，四行左对齐，方便直接照抄 */
+  .info {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 0.25rem 0.5rem;
+    margin: 0.75rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 0.5px solid var(--border);
+    font-size: var(--font-size-s);
+    line-height: 1.6;
+  }
+  .info dt {
+    color: var(--text-secondary);
+  }
+  .info dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .empty {
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-light);
+    margin: 0;
+    opacity: 0.75;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  li + li {
+    border-top: 0.5px solid var(--border);
+  }
+  a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: opacity 0.15s ease-out;
+  }
+  /* 与文章列表一致：悬停时整列变淡，只有指针下的那条保持清晰 */
+  @media (hover: hover) and (pointer: fine) {
+    ul:hover a {
+      opacity: 0.4;
+    }
+    ul:hover a:hover {
+      opacity: 1;
+    }
+  }
+  .avatar {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: var(--code-bg);
+  }
+  .avatar.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: var(--font-size-s);
+    user-select: none;
+  }
+  .meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.5;
+  }
+  .name,
+  .desc {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .desc {
+    color: var(--text-secondary);
+    font-size: var(--font-size-s);
+    font-weight: var(--font-weight-light);
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var btn = document.getElementById('copy-info');
+    if (!btn || !navigator.clipboard) return;
+    // 从服务端渲染好的 dd 里取原文，避免把信息在模板和脚本里各写一份
+    var vals = document.querySelectorAll('.info dd');
+    var text =
+      'name: "' +
+      vals[0].textContent +
+      '"\nurl: "' +
+      vals[1].textContent +
+      '"\nimg: "' +
+      vals[2].textContent +
+      '"\ndesc: "' +
+      vals[3].textContent +
+      '"';
+    var original = btn.textContent;
+
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(text).then(
+        function () {
+          btn.textContent = '已复制';
+          setTimeout(function () {
+            btn.textContent = original;
+          }, 1500);
+        },
+        function () {
+          btn.textContent = '复制失败';
+          setTimeout(function () {
+            btn.textContent = original;
+          }, 1500);
+        },
+      );
+    });
+  })();
+</script>
