@@ -19,6 +19,8 @@
 
   --font-size-s: 0.8125rem;
   --font-size-m: 0.9375rem;
+  /* 站点标题（导航栏左侧那行字）单独一档，比正文大一档才立得住 */
+  --font-size-l: 1.25rem;
 
   --font-weight-light: 350;
   --font-weight-bold: 500;
