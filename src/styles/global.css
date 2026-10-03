@@ -1,9 +1,13 @@
-/* 设计规范取自 Chiri 主题（MIT, https://github.com/the3ash/astro-chiri），按本站需求精简。 */
-@import './post.css';
+/* 全站样式：基础排版 + 正文排版。
+ *
+ * 设计规范取自 Chiri 主题（MIT, https://github.com/the3ash/astro-chiri），按本站需求精简。
+ * 正文样式从前放在单独的 post.css 再由这里 @import，但那会多一次样式表请求、
+ * 也多一层渲染阻塞；全站只有这一个样式表，合并后浏览器一次就拿到全部规则。
+ */
+
+/* ---------- 设计变量 ---------- */
 
 :root {
-  --content-width: 25rem;
-
   /* 字体。参考站自托管 Inter（仅拉丁子集），本站在拿到 woff2 之前先走系统字体：
      中文本来就由系统字体渲染，Inter 只影响数字和拉丁文，省下约 100KB。
      想启用 Inter：把 Inter.woff2 放进 public/fonts/，再补上 @font-face 即可。 */
@@ -23,8 +27,11 @@
   --spacing-m: -0.02em;
 }
 
-/* 浅色（默认） */
+/* 配色。深色跟随系统偏好，纯 CSS 实现 —— 没有切换按钮，也没有任何主题相关 JS。
+   每个颜色只写一处，深色块只覆盖值，避免两套色值各自漂移。 */
 :root {
+  color-scheme: light dark;
+
   --bg: #ffffff;
   --text-primary: rgba(0, 0, 0, 0.85);
   --text-secondary: rgba(0, 0, 0, 0.4);
@@ -33,56 +40,59 @@
   --selection: rgba(0, 0, 0, 0.08);
   --code-bg: rgba(0, 0, 0, 0.04);
   --mark: #f3ffc4;
-  --astro-code-foreground: rgba(0, 0, 0, 0.85);
-  --astro-code-background: rgba(0, 0, 0, 0.03);
-  --astro-code-token-constant: rgba(0, 0, 0, 0.85);
-  --astro-code-token-string: rgba(0, 0, 0, 0.85);
-  --astro-code-token-comment: rgba(0, 0, 0, 0.35);
-  --astro-code-token-keyword: rgba(0, 0, 0, 0.55);
-  --astro-code-token-parameter: rgba(0, 0, 0, 0.85);
-  --astro-code-token-function: rgba(0, 0, 0, 0.85);
-  --astro-code-token-string-expression: rgba(0, 0, 0, 0.55);
-  --astro-code-token-punctuation: rgba(0, 0, 0, 0.55);
-  --astro-code-token-link: rgba(0, 0, 0, 0.55);
+  /* 代码块配色分三档：主色（标识符/常量）、次要色（关键字/标点）、注释。
+     Shiki 输出的是下面这些 --astro-code-token-* 变量引用，不再是内联色值。 */
+  --code-fg: rgba(0, 0, 0, 0.85);
+  --code-fg-dim: rgba(0, 0, 0, 0.55);
+  --code-fg-comment: rgba(0, 0, 0, 0.35);
+  --code-bg-block: rgba(0, 0, 0, 0.03);
 }
 
-/* 深色：跟随系统偏好。纯 CSS 实现 —— 没有切换按钮，也没有任何主题相关 JS。 */
 @media (prefers-color-scheme: dark) {
   :root {
-  --bg: #1c1c1c;
-  --text-primary: rgba(255, 255, 255, 0.9);
-  --text-secondary: rgba(255, 255, 255, 0.4);
-  --text-tertiary: rgba(255, 255, 255, 0.24);
-  --border: rgba(255, 255, 255, 0.1);
-  --selection: rgba(255, 255, 255, 0.08);
-  --code-bg: rgba(255, 255, 255, 0.04);
-  --mark: #545b37;
-  --astro-code-foreground: rgba(255, 255, 255, 0.9);
-  --astro-code-background: rgba(255, 255, 255, 0.03);
-  --astro-code-token-constant: rgba(255, 255, 255, 0.9);
-  --astro-code-token-string: rgba(255, 255, 255, 0.9);
-  --astro-code-token-comment: rgba(255, 255, 255, 0.35);
-  --astro-code-token-keyword: rgba(255, 255, 255, 0.55);
-  --astro-code-token-parameter: rgba(255, 255, 255, 0.9);
-  --astro-code-token-function: rgba(255, 255, 255, 0.9);
-  --astro-code-token-string-expression: rgba(255, 255, 255, 0.55);
-  --astro-code-token-punctuation: rgba(255, 255, 255, 0.55);
-  --astro-code-token-link: rgba(255, 255, 255, 0.55);
+    --bg: #1c1c1c;
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(255, 255, 255, 0.4);
+    --text-tertiary: rgba(255, 255, 255, 0.24);
+    --border: rgba(255, 255, 255, 0.1);
+    --selection: rgba(255, 255, 255, 0.08);
+    --code-bg: rgba(255, 255, 255, 0.04);
+    --mark: #545b37;
+    --code-fg: rgba(255, 255, 255, 0.9);
+    --code-fg-dim: rgba(255, 255, 255, 0.55);
+    --code-fg-comment: rgba(255, 255, 255, 0.35);
+    --code-bg-block: rgba(255, 255, 255, 0.03);
   }
 }
+
+/* Shiki 变量名 → 上面三档颜色。写在这里而不是散在配色块里，改配色只动一处。 */
+:root {
+  --astro-code-foreground: var(--code-fg);
+  --astro-code-background: var(--code-bg-block);
+  --astro-code-token-constant: var(--code-fg);
+  --astro-code-token-string: var(--code-fg);
+  --astro-code-token-parameter: var(--code-fg);
+  --astro-code-token-function: var(--code-fg);
+  --astro-code-token-keyword: var(--code-fg-dim);
+  --astro-code-token-string-expression: var(--code-fg-dim);
+  --astro-code-token-punctuation: var(--code-fg-dim);
+  --astro-code-token-link: var(--code-fg-dim);
+  --astro-code-token-comment: var(--code-fg-comment);
+}
+
+/* ---------- 页面骨架 ---------- */
 
 html {
   background-color: var(--bg);
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
   overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
+  -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: var(--sans);
-  font-feature-settings: 'ss03' 1;
   font-size: var(--font-size-m);
   line-height: 1.75;
   color: var(--text-primary);
@@ -93,25 +103,22 @@ body {
   letter-spacing: var(--spacing-m);
   margin: 0 auto;
   width: 100%;
+  padding: 6rem 1.5rem 1.5rem;
   overscroll-behavior-y: contain;
   text-autospace: normal;
   text-spacing-trim: space-first;
   text-rendering: optimizeLegibility;
   font-synthesis: none;
-  word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
-body[data-centered='true'] {
-  padding: 6rem 1.5rem 1.5rem;
+main {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-body[data-centered='false'] {
-  padding: 6rem 0 1.5rem;
-  margin: 0 1.5rem 0 8rem;
-}
-
-/* 固定视口外壳（首页）：页面自身不滚动，只有内部滚动区可滚。
+/* 固定视口外壳（首页）：页面自身不滚动，只有内容区可滚。
    滚动条槽也要关掉，否则右侧会永久留出一条空白。 */
 html:has(body[data-shell='true']) {
   scrollbar-gutter: auto;
@@ -119,18 +126,14 @@ html:has(body[data-shell='true']) {
 }
 
 body[data-shell='true'] {
-  height: 100vh;
-  height: 100dvh;
   overflow: hidden;
 }
 
 @media (max-width: 768px) {
-  body[data-centered='true'],
-  body[data-centered='false'] {
+  body {
     padding: 4rem 1.35rem 1.35rem;
-    margin: 0 auto;
   }
-  body[data-centered='true'][data-shell='true'] {
+  body[data-shell='true'] {
     padding-bottom: 0.75rem;
   }
 }
@@ -157,36 +160,206 @@ body[data-shell='true'] {
   border-radius: 0.25rem;
 }
 
-body[data-width] {
-  max-width: var(--content-width);
+/* ---------- 正文排版 ---------- */
+
+/* 作者一般不会写 h1（标题由布局渲染），所以从 h2 开始收敛字号 */
+.prose :is(h2, h3, h4, h5, h6) {
+  font-size: var(--font-size-m);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.75;
+  margin: 3.75em 0 1.75em;
 }
 
-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+.prose p {
+  line-height: 1.75;
+  margin: 1.75em 0;
 }
 
-.date {
-  margin: 0;
-  font-weight: var(--font-weight-light);
+.prose :is(strong, b) {
+  font-weight: var(--font-weight-bold);
+}
+
+.prose em {
+  font-family: var(--serif);
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+.prose a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--text-tertiary);
+  transition: text-decoration-color 0.2s ease-out;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--text-primary);
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 2em 0;
+}
+
+/* 表格 */
+.prose table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.75em 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.prose :is(th, td) {
+  border: none;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5em 1em;
+  text-align: left;
+}
+
+.prose :is(th, td):last-child {
+  border-right: none;
+}
+
+.prose tr:last-child td {
+  border-bottom: none;
+}
+
+.prose th {
+  background: var(--astro-code-background);
+  font-weight: var(--font-weight-bold);
+}
+
+/* 列表：无序用圆点，有序用数字 */
+.prose :is(ul, ol) {
+  margin: 0 0 1.75em 1.25rem;
+  padding-left: 0;
+  line-height: 1.75;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose :is(ul, ol) :is(ul, ol) {
+  margin: 0.5em 0 0.5em 0.625rem;
+}
+
+.prose li {
+  margin-bottom: 0.5em;
+}
+
+.prose li:last-child {
+  margin-bottom: 0;
+}
+
+.prose ol li::marker {
   color: var(--text-secondary);
-  opacity: 0.75;
-  flex-shrink: 0;
-  letter-spacing: var(--spacing-s);
   font-variant-numeric: tabular-nums;
 }
 
-.sr-only {
-  border: 0;
+/* 行内代码与代码块 */
+.prose code {
+  padding: 2.5px 3.5px;
+  border-radius: 5px;
+  background-color: var(--code-bg);
+  border: 0.5px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.9em;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
+.prose pre {
+  background-color: var(--astro-code-background);
+  border-radius: 8px;
+  padding: 1.25em 1.5em;
+  margin: 2em 0;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.prose pre > code {
+  font-family: var(--mono);
+  font-size: var(--font-size-s);
+  font-feature-settings: 'liga' 0, 'calt' 0;
+  display: block;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
   padding: 0;
   margin: 0;
-  position: absolute !important;
-  height: 1px;
-  width: 1px;
-  overflow: hidden;
-  clip: rect(1px, 1px, 1px, 1px);
-  clip-path: inset(50%);
-  white-space: nowrap;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+/* 引用 */
+.prose blockquote {
+  border-left: 2px solid var(--border);
+  margin: 0 0 1.75em 0.125em;
+  padding-left: 1.375em;
+  text-align: left;
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose :is(blockquote cite, cite) {
+  font-style: normal;
+}
+
+.prose blockquote cite {
+  display: inline-block;
+  margin-top: 0.5em;
+}
+
+/* 分隔线用居中的 ***，与 Chiri 一致 */
+.prose hr {
+  margin: 3.75em 0;
+  border: none;
+  text-align: center;
+}
+
+.prose hr::before {
+  content: '***';
+  font-family: var(--mono);
+  color: var(--text-tertiary);
+  font-size: 0.875em;
+  letter-spacing: 0.25em;
+}
+
+.prose kbd {
+  font-family: var(--mono);
+  font-size: var(--font-size-s);
+  border: 1px solid var(--text-tertiary);
+  padding: 1px 4px;
+  border-radius: 5px;
+  min-width: 1.75em;
+  display: inline-block;
+  text-align: center;
+}
+
+.prose mark {
+  background-color: var(--mark);
+  color: var(--text-primary);
+  padding: 3px 1px;
+}
+
+.prose :is(sup, sub, sup a) {
+  margin: 0 0.125em;
+  font-size: 0.875em;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .prose pre {
+    padding: 1em 1.25em;
+  }
 }

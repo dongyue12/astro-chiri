@@ -1,44 +1,182 @@
 ---
+/**
+ * 全站外壳：<head>、页头导航、可选工具栏、内容区、页脚。
+ *
+ * 刻意只留这一个通用布局：从前 BaseHead / Header / Footer 三个组件加上
+ * BaseLayout / IndexLayout 两层布局，每个页面要 import 四五个文件才拼出一个外壳，
+ * 而它们都只被本站三四个页面用到，收益不抵开销。现在页面只 import 这一个。
+ */
 import '@/styles/global.css';
-import { themeConfig } from '@/config';
+import { siteNav, themeConfig } from '@/config';
 
 interface Props {
   title: string;
   description?: string;
-  /** 固定视口外壳：页面本身不滚动，由内部区域滚动（首页列表用） */
+  /** 固定视口外壳：页面本身不滚动，只有内容区滚动（首页文章列表用） */
   shell?: boolean;
+  /** 内容区宽度上限（rem）。窄栏放正文，宽栏放友链卡片 */
+  maxWidth?: number;
 }
 
-const { title, description, shell = false } = Astro.props;
-const { language } = themeConfig.site;
-
-// 内容栏宽度：上限 50rem，低于 25rem 时统一按 25rem 处理（与 Chiri 行为一致）
-const widthValue = Math.min(parseFloat(themeConfig.general.contentWidth), 50);
-const finalWidth = widthValue > 25 ? `${widthValue}rem` : '25rem';
+const { title, description = themeConfig.site.description, shell = false, maxWidth = 35 } = Astro.props;
+const { language, author } = themeConfig.site;
+const year = new Date().getFullYear();
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!doctype html>
 <html lang={language}>
   <head>
-    <slot name="head" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="generator" content={Astro.generator} />
+
+    <link rel="canonical" href={canonicalURL} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={themeConfig.site.title} />
+    <meta name="twitter:card" content="summary" />
   </head>
+
   <body
-    data-centered={themeConfig.general.centeredLayout}
-    data-width
     data-shell={shell ? 'true' : undefined}
-    style={`max-width: ${finalWidth}; --content-width: ${finalWidth};`}
+    style={`max-width: ${maxWidth}rem; --content-width: ${maxWidth}rem;`}
   >
-    <div class="layout-wrapper">
-      <slot />
+    <div class="page">
+      <header>
+        <nav>
+          <a class="site-title" href="/">{themeConfig.site.title}</a>
+          <div class="site-links">
+            {siteNav.map((item) => <a href={item.href}>{item.label}</a>)}
+          </div>
+        </nav>
+      </header>
+
+      <div class="toolbar">
+        <slot name="toolbar" />
+      </div>
+
+      <main class="scroll-area">
+        <slot />
+      </main>
+
+      <footer>
+        <div class="copyright">&copy; {year} {author}</div>
+        <div class="powered-by">
+          Powered by <a href="https://astro.build">Astro</a>
+        </div>
+      </footer>
     </div>
   </body>
 </html>
 
-<style is:global>
-  .layout-wrapper {
+<style>
+  /* 滚动外壳：.page 撑满视口，只有 main 滚动，页头页脚固定 */
+  .page {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
+  }
+  body[data-shell='true'] {
+    height: 100vh;
+    height: 100dvh;
+  }
+  body[data-shell='true'] .page {
+    height: 100%;
+  }
+
+  header {
+    flex: none;
+  }
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .site-title {
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    text-decoration: none;
+    min-width: 3rem;
+    display: inline-block;
+  }
+  .site-links {
+    display: flex;
+    gap: 1rem;
+  }
+  .site-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .site-links a:hover {
+    color: var(--text-primary);
+  }
+
+  /* 只有首页会填这个插槽；其它页面为空，整块收起来，不占高度也不留间距 */
+  .toolbar {
+    display: none;
+  }
+  .toolbar:has(> *) {
+    display: block;
+    flex: none;
+  }
+
+  /* 长文页面：整页滚动。滚动外壳页面：只有这里滚动，且隐藏滚动条 */
+  main {
+    flex: 1;
+    min-height: 0;
+  }
+  body[data-shell='true'] main {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  body[data-shell='true'] main::-webkit-scrollbar {
+    display: none;
+  }
+
+  footer {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-top: 1.5rem;
+    font-size: var(--font-size-s);
+    font-weight: var(--font-weight-light);
+    line-height: 1.75;
+    color: var(--text-secondary);
+    opacity: 0.75;
+  }
+  /* 滚动外壳里页脚不参与滚动，去掉上边距免得把内容区挤短 */
+  body[data-shell='true'] footer {
+    margin-top: 0.75rem;
+  }
+  footer div {
+    white-space: nowrap;
+  }
+  footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease-out;
+  }
+  footer a:hover {
+    color: var(--text-primary);
+  }
+  @media (max-width: 480px) {
+    footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
   }
 </style>

@@ -1,19 +1,18 @@
 ---
 import { getCollection } from 'astro:content';
-import IndexLayout from '@/layouts/IndexLayout.astro';
-import PostList from '@/components/PostList.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
 import { themeConfig } from '@/config';
 
-// 搜索用文本：保留代码块和表格里的内容（命令名这类关键词恰恰在那里），
-// 只剥掉 markdown 语法符号。整段内联进 data-search，搜索时无需任何网络请求。
+// 搜索用文本：保留代码块和表格里的内容（命令名这类关键词恰恰在那里），只剥掉 markdown 语法。
+// 字符类刻意不含连字符：`by-sa`、`up`-`down` 这类词要能整体搜到，
+// 表格分隔行留下的 `---` 无害，没人会去搜它。
 function searchable(md = '') {
   return md
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/[#>*_`|~]/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // 图片整个丢掉，说明文字对搜索没用
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // 链接只留文字
+    .replace(/[#>*_`|~]/g, ' ') // 语法符号
     .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+    .trim();
 }
 
 const posts = (await getCollection('blog'))
@@ -21,12 +20,26 @@ const posts = (await getCollection('blog'))
   .map((post) => ({
     id: post.id,
     title: post.data.title,
-    pubDate: post.data.pubDate,
+    date: post.data.pubDate.toISOString().slice(0, 10),
     search: searchable(post.body),
   }));
+
+const pad = (n: number) => String(n).padStart(2, '0');
+/** 首页列表日期：与主题配置共用分隔符，固定 年-月-日 */
+const formatDate = (iso: string) => {
+  const [y, m, d] = iso.split('-');
+  const sep = ['.', '-', '/'].includes(themeConfig.date.separator) ? themeConfig.date.separator : '.';
+  return `${y}${sep}${m}${sep}${d}`;
+};
+
+// 搜索索引整段内联为 JSON，搜索时零网络请求。每条是 [日期, 标题, 正文]，标题也存一份：
+// 正文里没出现过的标题词（比如「换源」）照样能搜到，而且不额外占字节 —— 列表本来就要渲染标题。
+// 用 getElementById 读取而不是 <script> 变量，是为了让它成为惰性数据：大段非 ASCII 文本不参与 JS 解析。
+// 大小写折叠留到搜索时做，省下索引里一份重复的小写副本。
+const searchIndex = JSON.stringify(posts.map((p) => [formatDate(p.date), p.title, p.search]));
 ---
 
-<IndexLayout title={themeConfig.site.title} description={themeConfig.site.description}>
+<BaseLayout title={themeConfig.site.title} description={themeConfig.site.description} shell>
   <input
     slot="toolbar"
     id="search"
@@ -37,35 +50,58 @@ const posts = (await getCollection('blog'))
     aria-controls="post-list"
     aria-label="搜索文章"
   />
-  <PostList posts={posts} listId="post-list" />
-  <p id="empty" class="empty" hidden>没有匹配的文章</p>
-</IndexLayout>
+
+  <ul id="post-list">
+    {
+      posts.map((post) => (
+        <li>
+          <a href={`/${post.id}/`}>
+            <span class="title">{post.title}</span>
+            <span class="divider" aria-hidden="true" />
+            <time class="date" datetime={post.date}>
+              {formatDate(post.date)}
+            </time>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <p id="empty" hidden>没有匹配的文章</p>
+</BaseLayout>
+
+<script type="application/json" id="search-index" set:html={searchIndex} />
 
 <script is:inline>
   (function () {
     var input = document.getElementById('search');
     var list = document.getElementById('post-list');
-    if (!input || !list) return;
+    var index = document.getElementById('search-index');
+    if (!input || !list || !index) return;
 
     // 列表由服务端渲染，搜索只切换 hidden —— 布局与行样式完全不变，
     // 且禁用 JS 时整份列表依然可见。
-    var rows = Array.prototype.slice.call(list.children);
+    var data = JSON.parse(index.textContent);
+    var rows = list.children;
     var empty = document.getElementById('empty');
     var composing = false;
 
     function apply() {
-      var q = input.value.trim().toLowerCase();
-      var terms = q ? q.split(/\s+/) : [];
+      var terms = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
       var shown = 0;
 
-      rows.forEach(function (row) {
-        var haystack = row.getAttribute('data-search') || '';
-        var match = terms.every(function (t) {
-          return haystack.indexOf(t) !== -1;
-        });
-        row.hidden = !match;
+      for (var i = 0; i < rows.length; i++) {
+        // 标题 + 正文一起搜，标题词权重自然最高（短且靠前）
+        var haystack = (data[i][1] + ' ' + data[i][2]).toLowerCase();
+        var match = true;
+        for (var j = 0; j < terms.length; j++) {
+          if (haystack.indexOf(terms[j]) === -1) {
+            match = false;
+            break;
+          }
+        }
+        rows[i].hidden = !match;
         if (match) shown++;
-      });
+      }
 
       if (empty) empty.hidden = shown !== 0;
     }
@@ -112,10 +148,56 @@ const posts = (await getCollection('blog'))
   input::-webkit-search-cancel-button {
     -webkit-appearance: none;
   }
-  .empty {
+
+  ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  /* 搜索过滤时隐藏的行 */
+  li[hidden] {
+    display: none;
+  }
+  li a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 2.75rem;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+  .title {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 标题与日期之间用点线填满剩余空间 */
+  .divider {
+    flex: 1 1 auto;
+    min-width: 3rem;
+    height: 1px;
+    background-image: radial-gradient(circle, var(--border) 0.5px, transparent 0.5px);
+    background-size: 0.5rem 1px;
+    background-position: 0 center;
+    background-repeat: repeat-x;
+  }
+  .date {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    letter-spacing: var(--spacing-s);
+    font-variant-numeric: tabular-nums;
+  }
+  li a:hover .title {
+    text-decoration: underline;
+    text-decoration-color: var(--text-tertiary);
+    text-underline-offset: 0.25em;
+  }
+
+  #empty {
     margin: 0;
     color: var(--text-secondary);
-    opacity: 0.75;
     font-weight: var(--font-weight-light);
+    opacity: 0.75;
   }
 </style>
