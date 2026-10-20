@@ -6,7 +6,7 @@
  * 两处合并不划算；这里直接内联，留言页仍复用这个布局（`commentTitle=""`）。
  */
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { themeConfig } from '@/config';
+import { formatPostDate, themeConfig } from '@/config';
 
 interface Props {
   /** 浏览器标题（`<title>`），通常是「文章名 · 站点名」 */
@@ -30,32 +30,6 @@ const {
   commentTitle = '评论',
 } = Astro.props;
 const siteTitle = themeConfig.site.title;
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** 按 themeConfig.date 渲染日期。未知格式回退为 年.月.日 */
-function formatDate(date: Date) {
-  const { format, separator } = themeConfig.date;
-  const sep = ['.', '-', '/'].includes(separator) ? separator : '.';
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const month = MONTHS[date.getMonth()];
-
-  switch (format) {
-    case 'MM-DD-YYYY':
-      return `${pad(m)}${sep}${pad(d)}${sep}${y}`;
-    case 'DD-MM-YYYY':
-      return `${pad(d)}${sep}${pad(m)}${sep}${y}`;
-    case 'MONTH DAY YYYY':
-      return `${month} ${d} ${y}`;
-    case 'DAY MONTH YYYY':
-      return `${d} ${month} ${y}`;
-    default:
-      return `${y}${sep}${pad(m)}${sep}${pad(d)}`;
-  }
-}
 ---
 
 <BaseLayout title={`${title} · ${siteTitle}`} description={description}>
@@ -65,11 +39,11 @@ function formatDate(date: Date) {
       {
         pubDate && (
           <p class="date">
-            <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+            <time datetime={pubDate.toISOString()}>{formatPostDate(pubDate)}</time>
             {updatedDate && (
               <span class="updated">
                 <span>·</span>更新于{' '}
-                <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate)}</time>
+                <time datetime={updatedDate.toISOString()}>{formatPostDate(updatedDate)}</time>
               </span>
             )}
           </p>
@@ -142,15 +116,91 @@ function formatDate(date: Date) {
   })();
 </script>
 
+<script is:inline>
+  // 给每个代码块加复制按钮。纯 DOM 注入，禁用 JS 时只是没有按钮，代码照常显示。
+  (function () {
+    var blocks = document.querySelectorAll('.prose pre');
+    if (!blocks.length || !navigator.clipboard) return;
+
+    blocks.forEach(function (pre) {
+      var code = pre.querySelector('code');
+      if (!code) return;
+
+      var wrap = document.createElement('div');
+      wrap.className = 'code-block';
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+
+      var btn = document.createElement('button');
+      btn.className = 'copy-code';
+      btn.type = 'button';
+      btn.textContent = '复制';
+      btn.setAttribute('aria-label', '复制这段代码');
+      wrap.appendChild(btn);
+
+      var timer;
+      function reset(label) {
+        clearTimeout(timer);
+        btn.textContent = label;
+        timer = setTimeout(function () {
+          btn.textContent = '复制';
+        }, 1500);
+      }
+
+      btn.addEventListener('click', function () {
+        navigator.clipboard.writeText(code.textContent).then(
+          function () {
+            reset('已复制');
+          },
+          function () {
+            reset('复制失败');
+          },
+        );
+      });
+    });
+  })();
+</script>
+
+<script is:inline>
+  // 点正文图片看大图。原生 dialog：Esc 或点任意处关闭，打开时背景不可滚动。
+  (function () {
+    var imgs = document.querySelectorAll('.prose img');
+    if (!imgs.length || typeof HTMLDialogElement === 'undefined') return;
+
+    imgs.forEach(function (img) {
+      img.classList.add('zoomable');
+      img.addEventListener('click', function () {
+        var dialog = document.createElement('dialog');
+        dialog.className = 'img-viewer';
+
+        var big = document.createElement('img');
+        big.src = img.currentSrc || img.src;
+        big.alt = img.alt;
+        dialog.appendChild(big);
+
+        document.body.appendChild(dialog);
+        dialog.showModal();
+
+        dialog.addEventListener('click', function () {
+          dialog.close();
+        });
+        dialog.addEventListener('close', function () {
+          dialog.remove();
+        });
+      });
+    });
+  })();
+</script>
+
 <style>
   article {
     flex: 1;
   }
   .title {
-    margin-top: 1.5rem;
+    margin-top: 1rem;
   }
   .date {
-    margin-top: 0.375rem;
+    margin-top: 0.5rem;
   }
   .updated {
     color: var(--text-secondary);

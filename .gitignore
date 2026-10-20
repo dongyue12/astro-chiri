@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # local dev logs
 *.log
+
+# local audit screenshots
+audit/

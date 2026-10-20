@@ -79,3 +79,31 @@ export const themeConfig = {
     ] as Friend[],
   },
 } as const;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * 按 themeConfig.date 渲染日期。文章页和首页共用同一份实现，
+ * 从前两处各写一套，改 `format` 时首页不生效。
+ */
+export function formatPostDate(date: Date): string {
+  const { format, separator } = themeConfig.date;
+  const sep = ['.', '-', '/'].includes(separator) ? separator : '.';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const y = date.getFullYear();
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+
+  switch (format) {
+    case 'MM-DD-YYYY':
+      return `${pad(m)}${sep}${pad(d)}${sep}${y}`;
+    case 'DD-MM-YYYY':
+      return `${pad(d)}${sep}${pad(m)}${sep}${y}`;
+    case 'MONTH DAY YYYY':
+      return `${MONTHS[date.getMonth()]} ${d} ${y}`;
+    case 'DAY MONTH YYYY':
+      return `${d} ${MONTHS[date.getMonth()]} ${y}`;
+    default:
+      return `${y}${sep}${pad(m)}${sep}${pad(d)}`;
+  }
+}

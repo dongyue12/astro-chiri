@@ -43,11 +43,21 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
           {links.map((friend) => (
             <li>
               <a href={friend.url} target="_blank" rel="noopener noreferrer">
-                {friend.avatar ? (
-                  <img class="avatar" src={friend.avatar} alt="" width="40" height="40" loading="lazy" />
-                ) : (
-                  <span class="avatar placeholder" aria-hidden="true">{initial(friend.name)}</span>
-                )}
+                {/* 首字始终垫在底层，外链头像加载失败就移除自己，露出首字 */}
+                <span class="avatar-slot">
+                  <span class="placeholder" aria-hidden="true">{initial(friend.name)}</span>
+                  {friend.avatar && (
+                    <img
+                      class="avatar-img"
+                      src={friend.avatar}
+                      alt=""
+                      width="40"
+                      height="40"
+                      loading="lazy"
+                      onerror="this.remove()"
+                    />
+                  )}
+                </span>
                 <span class="meta">
                   <span class="name">{friend.name}</span>
                   {friend.description && <span class="desc">{friend.description}</span>}
@@ -116,9 +126,9 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
 
 <style>
   h1 {
-    font-size: var(--font-size-m);
-    font-weight: var(--font-weight-bold);
-    margin: 1.5rem 0 2rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 1.25rem 0 1.75rem;
   }
   .section-title {
     color: var(--text-secondary);
@@ -161,16 +171,21 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     color: var(--text-primary);
     border-color: var(--text-tertiary);
   }
-  /* 完整信息：字段名固定宽度，四行左对齐，方便直接照抄 */
+  /* 完整信息两列并排，卡片高度省一半；窄屏回落成单列 */
   .info {
     display: grid;
-    grid-template-columns: 3.5rem 1fr;
+    grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem minmax(0, 1fr);
     gap: 0.25rem 0.5rem;
     margin: 0.75rem 0 0;
     padding-top: 0.75rem;
     border-top: 0.5px solid var(--border);
     font-size: var(--font-size-s);
     line-height: 1.6;
+  }
+  @media (max-width: 600px) {
+    .info {
+      grid-template-columns: 3.5rem minmax(0, 1fr);
+    }
   }
   .info dt {
     color: var(--text-secondary);
@@ -184,7 +199,6 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     color: var(--text-secondary);
     font-weight: var(--font-weight-light);
     margin: 0;
-    opacity: 0.75;
   }
   ul {
     list-style: none;
@@ -201,7 +215,6 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     padding: 0.75rem 0;
     color: var(--text-primary);
     text-decoration: none;
-    transition: opacity 0.15s ease-out;
   }
   li a:hover .name {
     text-decoration: underline;
@@ -216,13 +229,32 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     object-fit: cover;
     background-color: var(--code-bg);
   }
-  .avatar.placeholder {
+  /* 头像槽：首字占位在底层，外链图覆盖在上层，加载失败时自然露出首字 */
+  .avatar-slot {
+    position: relative;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: var(--code-bg);
+  }
+  .avatar-slot .placeholder {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--text-secondary);
     font-size: var(--font-size-s);
     user-select: none;
+  }
+  .avatar-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
   .meta {
     display: flex;

@@ -3,19 +3,152 @@ import { getCollection, render } from 'astro:content';
 import PostLayout from '@/layouts/PostLayout.astro';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog');
-  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+  // 与首页同一套排序：新 → 旧。这样「上一篇」就是列表里它上面那篇
+  const posts = (await getCollection('blog')).sort(
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+  );
+
+  return posts.map((post, i) => ({
+    params: { slug: post.id },
+    props: {
+      post,
+      prev: posts[i - 1] && { id: posts[i - 1].id, title: posts[i - 1].data.title },
+      next: posts[i + 1] && { id: posts[i + 1].id, title: posts[i + 1].data.title },
+    },
+  }));
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
+const { post, prev, next } = Astro.props;
+const { Content, headings } = await render(post);
+
+// 目录只收 h2/h3；少于 3 条不显示，短文章不需要目录
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+
+// 大多数文章没有 frontmatter description，直接回退到正文首段：分享卡片才有区分度。
+// 只取原文，不改写，截到第一个句末标点或 80 字。
+const plain = post.body
+  .replace(/```[\s\S]*?```/g, ' ')
+  .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+  .replace(/[#>*_`|~\[\]()]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+const lead = plain.split(/(?<=[。！？.!?])/)[0] ?? plain;
+const description =
+  post.data.description ?? (lead.length > 80 ? `${lead.slice(0, 80)}…` : lead || undefined);
 ---
 
 <PostLayout
   title={post.data.title}
-  description={post.data.description}
+  description={description}
   pubDate={post.data.pubDate}
   updatedDate={post.data.updatedDate}
 >
+  {
+    toc.length >= 3 && (
+      <details class="toc">
+        <summary>目录</summary>
+        <ol>
+          {toc.map((h) => (
+            <li class={`d${h.depth}`}>
+              <a href={`#${h.slug}`}>{h.text}</a>
+            </li>
+          ))}
+        </ol>
+      </details>
+    )
+  }
   <Content />
+  {
+    (prev || next) && (
+      <nav class="post-nav" aria-label="文章导航">
+        {prev && (
+          <a class="prev" href={`/${prev.id}/`}>
+            <span class="label">← 上一篇</span>
+            <span class="title">{prev.title}</span>
+          </a>
+        )}
+        {next && (
+          <a class="next" href={`/${next.id}/`}>
+            <span class="label">下一篇 →</span>
+            <span class="title">{next.title}</span>
+          </a>
+        )}
+      </nav>
+    )
+  }
 </PostLayout>
+
+<style>
+  /* 目录默认收起，长文才出现；原生 details，无 JS 也能用 */
+  .toc {
+    margin: 0 0 2.25em;
+    padding: 0.75rem 1rem;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    font-size: var(--font-size-s);
+    line-height: 1.6;
+  }
+  .toc summary {
+    cursor: pointer;
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .toc summary:hover {
+    color: var(--text-primary);
+  }
+  .toc ol {
+    margin: 0.6rem 0 0;
+    padding-left: 1.25rem;
+    line-height: 1.9;
+  }
+  .toc .d3 {
+    margin-left: 0.9rem;
+    list-style-type: circle;
+  }
+  .toc a {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+  .toc a:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-decoration-color: var(--text-tertiary);
+    text-underline-offset: 0.25em;
+  }
+
+  /* 上下篇：正文末尾一条细线分隔，两端对齐 */
+  .post-nav {
+    display: flex;
+    gap: 1.5rem;
+    margin: 4em 0 0;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border);
+    font-size: var(--font-size-s);
+    line-height: 1.6;
+  }
+  .post-nav a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+  .post-nav .next {
+    margin-left: auto;
+    text-align: right;
+  }
+  .post-nav .label {
+    color: var(--text-secondary);
+  }
+  .post-nav .title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .post-nav a:hover .title {
+    text-decoration: underline;
+    text-decoration-color: var(--text-tertiary);
+    text-underline-offset: 0.25em;
+  }
+</style>

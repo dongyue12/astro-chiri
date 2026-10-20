@@ -1,7 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { themeConfig } from '@/config';
+import { formatPostDate, themeConfig } from '@/config';
 
 // 搜索用文本：保留代码块和表格里的内容（命令名这类关键词恰恰在那里），只剥掉 markdown 语法。
 // 字符类刻意不含连字符：`by-sa`、`up`-`down` 这类词要能整体搜到，
@@ -20,23 +20,18 @@ const posts = (await getCollection('blog'))
   .map((post) => ({
     id: post.id,
     title: post.data.title,
-    date: post.data.pubDate.toISOString().slice(0, 10),
+    date: post.data.pubDate,
     search: searchable(post.body),
   }));
-
-const pad = (n: number) => String(n).padStart(2, '0');
-/** 首页列表日期：与主题配置共用分隔符，固定 年-月-日 */
-const formatDate = (iso: string) => {
-  const [y, m, d] = iso.split('-');
-  const sep = ['.', '-', '/'].includes(themeConfig.date.separator) ? themeConfig.date.separator : '.';
-  return `${y}${sep}${m}${sep}${d}`;
-};
 
 // 搜索索引整段内联为 JSON，搜索时零网络请求。每条是 [日期, 标题, 正文]，标题也存一份：
 // 正文里没出现过的标题词（比如「换源」）照样能搜到，而且不额外占字节 —— 列表本来就要渲染标题。
 // 用 getElementById 读取而不是 <script> 变量，是为了让它成为惰性数据：大段非 ASCII 文本不参与 JS 解析。
 // 大小写折叠留到搜索时做，省下索引里一份重复的小写副本。
-const searchIndex = JSON.stringify(posts.map((p) => [formatDate(p.date), p.title, p.search]));
+// 正文里可能出现 `</script>`，转义 `\<` 免得提前截断这段 JSON。
+const searchIndex = JSON.stringify(
+  posts.map((p) => [formatPostDate(p.date), p.title, p.search]),
+).replace(/</g, '\\u003c');
 ---
 
 <BaseLayout title={themeConfig.site.title} description={themeConfig.site.description} shell>
@@ -58,8 +53,8 @@ const searchIndex = JSON.stringify(posts.map((p) => [formatDate(p.date), p.title
           <a href={`/${post.id}/`}>
             <span class="title">{post.title}</span>
             <span class="divider" aria-hidden="true" />
-            <time class="date" datetime={post.date}>
-              {formatDate(post.date)}
+            <time class="date" datetime={post.date.toISOString().slice(0, 10)}>
+              {formatPostDate(post.date)}
             </time>
           </a>
         </li>
@@ -182,6 +177,13 @@ const searchIndex = JSON.stringify(posts.map((p) => [formatDate(p.date), p.title
     background-position: 0 center;
     background-repeat: repeat-x;
   }
+  /* 手机列宽只有三百来像素，8px 一个点会连成虚线噪点，间距放宽 */
+  @media (max-width: 480px) {
+    .divider {
+      min-width: 1rem;
+      background-size: 0.375rem 1px;
+    }
+  }
   .date {
     flex-shrink: 0;
     color: var(--text-secondary);
@@ -198,6 +200,5 @@ const searchIndex = JSON.stringify(posts.map((p) => [formatDate(p.date), p.title
     margin: 0;
     color: var(--text-secondary);
     font-weight: var(--font-weight-light);
-    opacity: 0.75;
   }
 </style>
