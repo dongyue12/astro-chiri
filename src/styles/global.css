@@ -94,6 +94,25 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 页面级滚动条也样式化：Chromium 一旦看到 ::-webkit-scrollbar 就不再使用系统浮层滚动条，
+   否则窗口变窄时浮层会盖住右侧的正文。标准属性只给不认伪元素的浏览器（Firefox）。 */
+html::-webkit-scrollbar {
+  width: 10px;
+}
+html::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
 body {
   font-family: var(--sans);
   font-size: var(--font-size-m);
