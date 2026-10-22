@@ -51,7 +51,7 @@ const searchIndex = JSON.stringify(
       posts.map((post) => (
         <li>
           <a href={`/${post.id}/`}>
-            <span class="title">{post.title}</span>
+            <h2 class="title">{post.title}</h2>
             <span class="divider" aria-hidden="true" />
             <time class="date" datetime={post.date.toISOString().slice(0, 10)}>
               {formatPostDate(post.date)}
@@ -162,6 +162,11 @@ const searchIndex = JSON.stringify(
     text-decoration: none;
   }
   .title {
+    /* 列表标题用 h2 提供文档大纲，视觉上跟普通文本一致 */
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;

@@ -16,6 +16,16 @@ interface Props {
   shell?: boolean;
   /** 内容区宽度上限（rem）。窄栏放正文，宽栏放友链卡片 */
   maxWidth?: number;
+  /** og:type。文章页传 article，其余用 website */
+  ogType?: 'website' | 'article';
+  /** 分享卡片图，绝对路径或相对 Astro.site 的路径；传 null 表示不输出 */
+  ogImage?: string | null;
+  /** 文章发布时间（ISO 字符串），仅 ogType=article 时有意义 */
+  publishedTime?: string;
+  /** 文章修改时间（ISO 字符串） */
+  updatedTime?: string;
+  /** 结构化数据（JSON-LD），传对象即可，自动序列化并转义 */
+  jsonLd?: Record<string, unknown> | null;
 }
 
 const defaultWidth = parseFloat(themeConfig.contentWidth) || 35;
@@ -24,11 +34,19 @@ const {
   description = themeConfig.site.description,
   shell = false,
   maxWidth = defaultWidth,
+  ogType = 'website',
+  ogImage = themeConfig.site.ogImage,
+  publishedTime,
+  updatedTime,
+  jsonLd = null,
 } = Astro.props;
 const { language, author } = themeConfig.site;
 const year = new Date().getFullYear();
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const currentPath = Astro.url.pathname;
+// 首页的站点名是整页唯一的一级标题；其它页面的 h1 留给正文标题
+const isHome = currentPath === '/';
+const ogImageURL = ogImage ? new URL(ogImage, Astro.site).href : null;
 ---
 
 <!doctype html>
@@ -47,12 +65,32 @@ const currentPath = Astro.url.pathname;
     <title>{title}</title>
     <meta name="description" content={description} />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content={themeConfig.site.title} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:locale" content={language.replace('-', '_')} />
+    {ogImageURL && <meta property="og:image" content={ogImageURL} />}
+    {ogImageURL && <meta property="og:image:width" content="1200" />}
+    {ogImageURL && <meta property="og:image:height" content="630" />}
+    {ogImageURL && <meta property="og:image:alt" content={title} />}
+    <meta name="twitter:card" content={ogImageURL ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImageURL && <meta name="twitter:image" content={ogImageURL} />}
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+    {updatedTime && <meta property="article:modified_time" content={updatedTime} />}
+    {ogType === 'article' && <meta property="article:author" content={author} />}
+    {
+      jsonLd && (
+        <script
+          type="application/ld+json"
+          is:inline
+          set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+        />
+      )
+    }
   </head>
 
   <body
@@ -64,7 +102,17 @@ const currentPath = Astro.url.pathname;
     <div class="page">
       <header>
         <nav>
-          <a class="site-title" href="/">{themeConfig.site.title}</a>
+          {isHome ? (
+            <h1 class="site-title-h">
+              <a class="site-title" href="/">
+                {themeConfig.site.title}
+              </a>
+            </h1>
+          ) : (
+            <a class="site-title" href="/">
+              {themeConfig.site.title}
+            </a>
+          )}
           <div class="site-links">
             {
               siteNav.map((item) => (
@@ -142,6 +190,13 @@ const currentPath = Astro.url.pathname;
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+  /* 首页用 h1 包住站点名：清掉 h1 的默认上下边距，视觉与其它页面保持一致 */
+  .site-title-h {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
   }
   .site-title {
     font-size: var(--font-size-l);

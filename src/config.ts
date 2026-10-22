@@ -21,6 +21,9 @@ export const themeConfig = {
     author: '冬月',
     description: '记录我在 Windows、开发工具和自建服务上踩过的坑与解决办法。',
     language: 'zh-CN',
+    // 分享卡片图（1200×630）。放 public/ 下，构建后即 https://dongyue.org/og.png
+    // 生成方式：pnpm og（见 scripts/make-og.sh），改站点标题/副标题后需重新生成
+    ogImage: '/og.png',
   },
 
   // 内容栏宽度，CSS 长度（rem）。正文可用宽度 = 本值 - 3rem（body 左右各 1.5rem）。

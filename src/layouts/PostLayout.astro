@@ -30,9 +30,35 @@ const {
   commentTitle = '评论',
 } = Astro.props;
 const siteTitle = themeConfig.site.title;
+
+// 结构化数据：让搜索结果能拿富摘要。仅有日期且传了 pubDate 的文章页才输出
+const articleLd = pubDate
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: heading,
+      description,
+      inLanguage: themeConfig.site.language,
+      datePublished: pubDate.toISOString(),
+      dateModified: (updatedDate ?? pubDate).toISOString(),
+      author: { '@type': 'Person', name: themeConfig.site.author },
+      image: new URL(themeConfig.site.ogImage, Astro.site).href,
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': new URL(Astro.url.pathname, Astro.site).href,
+      },
+    }
+  : null;
 ---
 
-<BaseLayout title={`${title} · ${siteTitle}`} description={description}>
+<BaseLayout
+  title={`${title} · ${siteTitle}`}
+  description={description}
+  ogType={pubDate ? 'article' : 'website'}
+  publishedTime={pubDate?.toISOString()}
+  updatedTime={updatedDate?.toISOString()}
+  jsonLd={articleLd}
+>
   <article>
     <div class="title">
       <h1>{heading}</h1>
