@@ -1,9 +1,9 @@
 ---
 /**
- * 文章页布局：标题、日期、正文、giscus 评论、返回顶部按钮。
+ * 文章页布局：标题区、正文、可选侧边目录、评论、返回顶部、阅读进度。
  *
- * 评论的 giscus 配置从前单独有一个 Comments 组件，但它只被文章页和留言页用到，
- * 两处合并不划算；这里直接内联，留言页仍复用这个布局（`commentTitle=""`）。
+ * 布局是「侧栏目录 + 正文」两栏：目录来自页面通过 aside 插槽传入的 <details>，
+ * 宽屏时展开并吸顶，窄屏时收成标题上方的一行。没有目录的短文章自动退回单栏。
  */
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { formatPostDate, themeConfig } from '@/config';
@@ -17,6 +17,10 @@ interface Props {
   /** 缺省则不显示日期行（留言页用） */
   pubDate?: Date;
   updatedDate?: Date;
+  /** 预计阅读时间（分钟），由文章页按正文长度算好传来 */
+  readingTime?: number;
+  /** 分类，传 id 和显示名；文章页用，留言页不传 */
+  category?: { id: string; name: string };
   /** 评论小标题；传空字符串表示只要评论区、不要标题 */
   commentTitle?: string;
 }
@@ -27,9 +31,12 @@ const {
   description,
   pubDate,
   updatedDate,
+  readingTime,
+  category,
   commentTitle = '评论',
 } = Astro.props;
 const siteTitle = themeConfig.site.title;
+const hasAside = Astro.slots.has('aside');
 
 // 结构化数据：让搜索结果能拿富摘要。仅有日期且传了 pubDate 的文章页才输出
 const articleLd = pubDate
@@ -59,52 +66,70 @@ const articleLd = pubDate
   updatedTime={updatedDate?.toISOString()}
   jsonLd={articleLd}
 >
-  <article>
-    <div class="title">
-      <h1>{heading}</h1>
+  {/* 阅读进度：纯 CSS 滚动时间线，不支持的浏览器不显示，也不影响阅读 */}
+  {pubDate && <div class="read-progress" aria-hidden="true"></div>}
+
+  <article class:list={['post-body', hasAside && 'with-aside']}>
+    {
+      hasAside && (
+        <aside class="post-aside" aria-label="文章目录">
+          <slot name="aside" />
+        </aside>
+      )
+    }
+
+    <header class="post-hero">
       {
         pubDate && (
-          <p class="date">
+          <div class="post-meta">
+            {category && (
+              <a class={`cat cat-${category.id}`} href={`/categories/${category.id}/`}>
+                {category.name}
+              </a>
+            )}
             <time datetime={pubDate.toISOString()}>{formatPostDate(pubDate)}</time>
+            {readingTime && <span>{readingTime} 分钟阅读</span>}
             {updatedDate && (
-              <span class="updated">
-                <span>·</span>更新于{' '}
-                <time datetime={updatedDate.toISOString()}>{formatPostDate(updatedDate)}</time>
+              <span>
+                更新于 <time datetime={updatedDate.toISOString()}>{formatPostDate(updatedDate)}</time>
               </span>
             )}
-          </p>
+          </div>
         )
       }
-    </div>
+      <h1>{heading}</h1>
+      {description && <p class="post-summary">{description}</p>}
+    </header>
+
     <div class="prose">
       <slot />
     </div>
-  </article>
 
-  <section class="comments" aria-label={commentTitle || '评论'}>
-    {commentTitle && <h2>{commentTitle}</h2>}
-    <script
-      src="https://giscus.app/client.js"
-      data-repo="dongyue12/giscus"
-      data-repo-id="R_kgDOSakHjA"
-      data-category="Announcements"
-      data-category-id="DIC_kwDOSakHjM4C8zJM"
-      data-mapping="pathname"
-      data-strict="0"
-      data-reactions-enabled="1"
-      data-emit-metadata="0"
-      data-input-position="bottom"
-      data-theme="preferred_color_scheme"
-      data-loading="lazy"
-      data-lang={themeConfig.site.language}
-      crossorigin="anonymous"
-      async
-      is:inline></script>
-  </section>
+    <section class="comments" aria-label={commentTitle || '评论'}>
+      {commentTitle && <h2 class="comments-title">{commentTitle}</h2>}
+      <script
+        src="https://giscus.app/client.js"
+        data-repo="dongyue12/giscus"
+        data-repo-id="R_kgDOSakHjA"
+        data-category="Announcements"
+        data-category-id="DIC_kwDOSakHjM4C8zJM"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="bottom"
+        data-theme="preferred_color_scheme"
+        data-loading="lazy"
+        data-lang={themeConfig.site.language}
+        crossorigin="anonymous"
+        async
+        is:inline></script>
+    </section>
+  </article>
 
   <div class="to-top-wrap">
     <button id="to-top" class="to-top" type="button" aria-label="返回顶部">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden="true">
         <path
           d="M6 10.5V2M6 2 2.1 5.9M6 2l3.9 3.9"
           stroke="currentColor"
@@ -126,7 +151,7 @@ const articleLd = pubDate
       var y = window.scrollY || document.documentElement.scrollTop;
       // 靠近页面底部时收起，避免压住页脚
       var nearBottom = y + window.innerHeight > document.documentElement.scrollHeight - 160;
-      var shouldShow = y > 400 && !nearBottom;
+      var shouldShow = y > 500 && !nearBottom;
       if (shouldShow !== shown) {
         shown = shouldShow;
         btn.classList.toggle('show', shouldShow);
@@ -143,6 +168,19 @@ const articleLd = pubDate
 </script>
 
 <script is:inline>
+  // 宽屏把目录默认展开，窄屏收成一行；读者手动收起后不再自动改回去
+  (function () {
+    var toc = document.querySelector('.toc');
+    if (!toc) return;
+    var wide = window.matchMedia('(min-width: 1081px)');
+    if (wide.matches) toc.open = true;
+    wide.addEventListener('change', function (e) {
+      if (e.matches) toc.open = true;
+    });
+  })();
+</script>
+
+<script is:inline>
   // 给每个代码块加复制按钮。纯 DOM 注入，禁用 JS 时只是没有按钮，代码照常显示。
   (function () {
     var blocks = document.querySelectorAll('.prose pre');
@@ -154,6 +192,7 @@ const articleLd = pubDate
 
       var wrap = document.createElement('div');
       wrap.className = 'code-block';
+      if (pre.dataset.language) wrap.dataset.lang = pre.dataset.language;
       pre.parentNode.insertBefore(wrap, pre);
       wrap.appendChild(pre);
 
@@ -183,6 +222,21 @@ const articleLd = pubDate
           },
         );
       });
+    });
+  })();
+</script>
+
+<script is:inline>
+  // 表格包一层横向滚动容器，窄屏里不把列挤成竖条。
+  (function () {
+    document.querySelectorAll('.prose table').forEach(function (table) {
+      var wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      wrap.tabIndex = 0;
+      wrap.setAttribute('role', 'region');
+      wrap.setAttribute('aria-label', '表格，可左右滚动');
+      table.parentNode.insertBefore(wrap, table);
+      wrap.appendChild(table);
     });
   })();
 </script>
@@ -219,82 +273,221 @@ const articleLd = pubDate
 </script>
 
 <style>
-  article {
-    flex: 1;
+  /* 两栏骨架：目录 14rem + 正文 43rem，整体居中。
+     没有目录的文章（留言页、短文章）自动只留正文一栏。 */
+  .post-body {
+    display: grid;
+    grid-template-columns: minmax(0, var(--content-width, 43rem));
+    justify-content: center;
   }
-  .title {
-    margin-top: 1rem;
+
+  .post-body.with-aside {
+    grid-template-columns: 14rem minmax(0, var(--content-width, 43rem));
+    column-gap: 4rem;
   }
-  .date {
-    margin-top: 0.5rem;
+
+  .post-aside {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-self: start;
+    position: sticky;
+    top: 6.5rem;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
   }
-  .updated {
-    color: var(--text-secondary);
-    letter-spacing: var(--spacing-s);
+
+  .post-hero,
+  .prose,
+  .comments {
+    grid-column: 1;
+    min-width: 0;
   }
-  .updated span {
-    margin: 0 0.25em;
+
+  .with-aside .post-hero,
+  .with-aside .prose,
+  .with-aside .comments {
+    grid-column: 2;
+  }
+
+  .post-hero {
+    margin-bottom: 2.75rem;
+    padding-bottom: 2.25rem;
+    border-bottom: 1px solid var(--line);
+    scroll-margin-top: 6rem;
+  }
+
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.1rem;
+    margin-bottom: 1.25rem;
+    font-family: var(--mono);
+    font-size: var(--text-s);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .post-meta .cat {
+    font-family: var(--sans);
+    font-size: var(--text-s);
+  }
+
+  .post-hero h1 {
+    margin: 0;
+    font-size: clamp(2.25rem, 1.6rem + 2.2vw, 3.5rem);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  .post-summary {
+    max-width: 40rem;
+    margin: 1.25rem 0 0;
+    color: var(--ink-2);
+    font-size: 1.0625rem;
+    line-height: 1.8;
+    text-wrap: pretty;
   }
 
   .comments {
-    margin-bottom: 4rem;
-  }
-  .comments h2 {
-    font-size: var(--font-size-m);
-    font-weight: var(--font-weight-bold);
-    margin: 0 0 1.5rem;
+    margin-top: 5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
   }
 
-  /* 与内容栏同宽居中，按钮右对齐到正文右边缘，而不是飘在视口角落 */
+  .comments-title {
+    margin: 0 0 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  /* 返回顶部：视口右下角，白底毛玻璃，和正文栏解耦 */
   .to-top-wrap {
     position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 1.5rem;
-    width: 100%;
-    max-width: var(--content-width);
-    padding: 0 1.5rem;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: flex-end;
+    right: 1.75rem;
+    bottom: 1.75rem;
+    z-index: 40;
     pointer-events: none;
-    z-index: 10;
   }
+
   .to-top {
     pointer-events: auto;
-    width: 2rem;
-    height: 2rem;
+    width: 2.5rem;
+    height: 2.5rem;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--line);
     border-radius: 50%;
-    background: var(--bg);
-    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--ink-2);
+    box-shadow: var(--shadow-s);
     cursor: pointer;
     opacity: 0;
     visibility: hidden;
     transition:
-      opacity 0.2s ease-out,
-      color 0.2s ease-out,
-      visibility 0.2s;
+      opacity var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      visibility var(--dur);
   }
+
   .to-top.show {
     opacity: 1;
     visibility: visible;
   }
+
   .to-top:hover {
-    color: var(--text-primary);
+    color: var(--accent);
+    border-color: var(--accent-line);
   }
-  @media (hover: none) and (pointer: coarse) {
-    .to-top:hover {
-      color: var(--text-secondary);
+
+  /* 阅读进度：2px 朱砂线。滚动时间线需要 animation-duration: auto，
+     写成 0s 的话动画不会跟着滚动走。 */
+  .read-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 60;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    pointer-events: none;
+  }
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .read-progress {
+        animation: read-progress linear both;
+        animation-duration: auto;
+        animation-timeline: scroll(root block);
+      }
     }
   }
+
+  @keyframes read-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @media (max-width: 1080px) {
+    .post-body,
+    .post-body.with-aside {
+      grid-template-columns: minmax(0, var(--content-width, 43rem));
+      justify-content: center;
+    }
+    .post-aside {
+      grid-column: 1;
+      grid-row: 1;
+      position: static;
+      max-height: none;
+      overflow: visible;
+      margin-bottom: 2rem;
+    }
+    .with-aside .post-hero,
+    .with-aside .prose,
+    .with-aside .comments {
+      grid-column: 1;
+    }
+    .post-body.with-aside {
+      grid-template-rows: auto auto auto auto;
+    }
+    .with-aside .post-hero {
+      grid-row: 2;
+    }
+    .with-aside .prose {
+      grid-row: 3;
+    }
+    .with-aside .comments {
+      grid-row: 4;
+    }
+  }
+
   @media (max-width: 768px) {
+    .post-hero {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+    }
+    .comments {
+      margin-top: 3.5rem;
+    }
     .to-top-wrap {
-      padding: 0 1.35rem;
+      right: 1rem;
+      bottom: 1rem;
     }
   }
 </style>

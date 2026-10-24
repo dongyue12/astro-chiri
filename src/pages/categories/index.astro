@@ -1,0 +1,147 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { categories, themeConfig } from '@/config';
+
+const posts = await getCollection('blog');
+const total = posts.length;
+
+// 分类是固定的三档，计数直接在这里算；顺序按文章数从多到少
+const rows = categories
+  .map((category) => ({
+    ...category,
+    count: posts.filter((post) => post.data.category === category.id).length,
+  }))
+  .sort((a, b) => b.count - a.count);
+---
+
+<BaseLayout title={`分类 · ${themeConfig.site.title}`}>
+  <header class="page-hero">
+    <h1>分类</h1>
+    <p class="lead">
+      {total} 篇文章按主题分成 {rows.length} 类。分类粗、标签细，先用分类缩小范围，再用标签找人。
+    </p>
+  </header>
+
+  <ul class="cat-grid">
+    {
+      rows.map((category) => (
+        <li>
+          <a class={`cat-card cat-${category.id}`} href={`/categories/${category.id}/`}>
+            <span class="cat-name">
+              <span class="cat">{category.name}</span>
+            </span>
+            <span class="cat-desc">{category.description}</span>
+            <span class="cat-count">
+              {category.count}
+              <span class="cat-unit">篇</span>
+            </span>
+            <span class="cat-arrow" aria-hidden="true">
+              →
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
+
+<style>
+  /* 三块并排的大卡片：分类少，正好用整行宽度铺满首屏 */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .cat-grid li {
+    display: flex;
+  }
+
+  .cat-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 15rem;
+    padding: 1.6rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--cat) 9%, var(--surface)),
+      var(--surface) 62%
+    );
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      transform var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+
+  .cat-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--cat) 45%, var(--line));
+    box-shadow: var(--shadow-m);
+  }
+
+  .cat-name .cat {
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .cat-desc {
+    max-width: 20rem;
+    color: var(--ink-2);
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  .cat-count {
+    margin-top: auto;
+    padding-top: 1.5rem;
+    font-family: var(--mono);
+    font-size: 3.25rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cat-unit {
+    margin-left: 0.2em;
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    color: var(--ink-3);
+  }
+
+  .cat-arrow {
+    position: absolute;
+    right: 1.6rem;
+    bottom: 1.6rem;
+    font-family: var(--mono);
+    color: var(--ink-3);
+    transition:
+      transform var(--dur) var(--ease),
+      color var(--dur) var(--ease);
+  }
+
+  .cat-card:hover .cat-arrow {
+    color: var(--cat);
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 900px) {
+    .cat-grid {
+      grid-template-columns: 1fr;
+    }
+    .cat-card {
+      min-height: 11rem;
+    }
+  }
+</style>

@@ -10,9 +10,74 @@ export interface Friend {
 
 /** 侧边栏导航。改这里即可增删页面。 */
 export const siteNav = [
+  { href: '/categories/', label: '分类' },
+  { href: '/tags/', label: '标签' },
   { href: '/message/', label: '留言' },
   { href: '/friends/', label: '友链' },
 ];
+
+/**
+ * 分类：每篇文章只属于一个，放粗粒度的大方向。
+ * id 同时是 URL（/categories/dev/），改 id 会让旧链接失效；显示名随便改。
+ */
+export const categoryIds = ['system', 'dev', 'misc'] as const;
+
+export const categories = [
+  { id: 'system', name: '系统技巧', description: 'Windows 设置、桌面和系统自带功能。' },
+  { id: 'dev', name: '开发工具', description: 'Git、编辑器、命令行与开发环境。' },
+  { id: 'misc', name: '杂记', description: '协议、魔方和别的零碎记录。' },
+] as const;
+
+export type CategoryId = (typeof categoryIds)[number];
+
+/** 取分类元信息，未知 id 回落到「杂记」，避免模板里到处写兜底 */
+export function getCategory(id?: string) {
+  return categories.find((c) => c.id === id) ?? categories[categories.length - 1];
+}
+
+/**
+ * 标签：id → 显示名。id 进 URL（/tags/git/）且只含小写字母数字和连字符，
+ * 中文显示名放在这里，链接和搜索都能读，不用把中文塞进地址。
+ */
+export const tags: Record<string, string> = {
+  '7zip': '7-Zip',
+  activation: '系统激活',
+  ai: 'AI',
+  browser: '浏览器',
+  chrome: 'Chrome',
+  cli: '命令行',
+  cloudflare: 'Cloudflare',
+  codex: 'Codex',
+  cube: '魔方',
+  database: '数据库',
+  docker: 'Docker',
+  encoding: '编码',
+  explorer: '资源管理器',
+  git: 'Git',
+  input: '输入法',
+  license: '协议',
+  mirror: '镜像源',
+  network: '网络',
+  notes: '笔记',
+  obsidian: 'Obsidian',
+  opencode: 'OpenCode',
+  security: '安全',
+  settings: '设置',
+  shortcuts: '快捷键',
+  ssh: 'SSH',
+  sqlserver: 'SQL Server',
+  terminal: '终端',
+  vscode: 'VSCode',
+  windows: 'Windows',
+  winget: 'Winget',
+  wps: 'WPS',
+  zoxide: 'Zoxide',
+};
+
+export function getTagName(id: string): string {
+  return tags[id] ?? id;
+}
+
 
 export const themeConfig = {
   site: {
@@ -22,13 +87,13 @@ export const themeConfig = {
     description: '记录我在 Windows、开发工具和自建服务上踩过的坑与解决办法。',
     language: 'zh-CN',
     // 分享卡片图（1200×630）。放 public/ 下，构建后即 https://dongyue.org/og.png
-    // 生成方式：pnpm og（见 scripts/make-og.sh），改站点标题/副标题后需重新生成
+    // 改站点标题/副标题后需要重新生成，设计和字体见 public/og.png 本身
     ogImage: '/og.png',
   },
 
-  // 内容栏宽度，CSS 长度（rem）。正文可用宽度 = 本值 - 3rem（body 左右各 1.5rem）。
+  // 正文栏宽度，CSS 长度（rem）。文章页侧栏目录另占 14rem + 4rem 间距。
   // 注意：正文图片的 sizes 依赖这个值来挑选合适的档位，改动后请同步 astro.config.ts。
-  contentWidth: '35rem',
+  contentWidth: '43rem',
 
   // 日期格式：YYYY-MM-DD | MM-DD-YYYY | DD-MM-YYYY | MONTH DAY YYYY | DAY MONTH YYYY
   // 分隔符只取 . - / 三种，其它字符回退为 '.'。
@@ -84,7 +149,6 @@ export const themeConfig = {
 } as const;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 /**
  * 按 themeConfig.date 渲染日期。文章页和首页共用同一份实现，
  * 从前两处各写一套，改 `format` 时首页不生效。
@@ -109,4 +173,38 @@ export function formatPostDate(date: Date): string {
     default:
       return `${y}${sep}${pad(m)}${sep}${pad(d)}`;
   }
+}
+
+/**
+ * 从正文里抽一句摘要，卡片和分享描述共用。
+ * 只剥语法，不改写原文：截到第一个句末标点，超过 limit 再截断加省略号。
+ */
+export function excerptFrom(body = '', limit = 76): string {
+  const plain = body
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/^#{1,6}\s+.*$/gm, ' ')
+    .replace(/^\s*\|.*\|\s*$/gm, ' ')
+    .replace(/^\s*:?-{2,}:?\s*$/gm, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/^\s*[-+*]\s+/gm, ' ')
+    .replace(/^\s*\d+\.\s+/gm, ' ')
+    .replace(/[>*_`|~\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const first = plain.split(/(?<=[。！？.!?])/)[0] ?? plain;
+  return first.length > limit ? `${first.slice(0, limit)}…` : first;
+}
+
+/**
+ * 预计阅读时间（分钟）：中文按 400 字/分钟，英文按词算。
+ * 代码块不计入 —— 读代码和读散文的速度不是一回事，算进去反而偏长。
+ */
+export function readingMinutes(body = ''): number {
+  const prose = body.replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ');
+  const cjk = (prose.match(/[\u3400-\u9fff]/g) || []).length;
+  const words = (prose.match(/[A-Za-z0-9]+/g) || []).length;
+  return Math.max(1, Math.round(cjk / 400 + words / 220));
 }

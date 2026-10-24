@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import PostLayout from '@/layouts/PostLayout.astro';
+import { excerptFrom, getCategory, getTagName, readingMinutes } from '@/config';
 
 export async function getStaticPaths() {
   // 与首页同一套排序：新 → 旧。这样「上一篇」就是列表里它上面那篇
@@ -24,17 +25,23 @@ const { Content, headings } = await render(post);
 // 目录只收 h2/h3；少于 3 条不显示，短文章不需要目录
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 
-// 大多数文章没有 frontmatter description，直接回退到正文首段：分享卡片才有区分度。
-// 只取原文，不改写，截到第一个句末标点或 80 字。
-const plain = post.body
-  .replace(/```[\s\S]*?```/g, ' ')
-  .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-  .replace(/[#>*_`|~\[\]()]/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
-const lead = plain.split(/(?<=[。！？.!?])/)[0] ?? plain;
-const description =
-  post.data.description ?? (lead.length > 80 ? `${lead.slice(0, 80)}…` : lead || undefined);
+// 按 h2 分组成两层。标题里的「一、二、」是作者自己写的序号，
+// 列表不再重复编号，改用一条左侧细线标出层级。
+const tocTree: { text: string; slug: string; children: { text: string; slug: string }[] }[] = [];
+for (const h of toc) {
+  if (h.depth === 2) {
+    tocTree.push({ text: h.text, slug: h.slug, children: [] });
+  } else if (tocTree.length) {
+    tocTree[tocTree.length - 1].children.push({ text: h.text, slug: h.slug });
+  }
+}
+
+const description = post.data.description ?? excerptFrom(post.body, 80);
+const readingTime = readingMinutes(post.body);
+const category = {
+  id: post.data.category,
+  name: getCategory(post.data.category).name,
+};
 ---
 
 <PostLayout
@@ -42,35 +49,69 @@ const description =
   description={description}
   pubDate={post.data.pubDate}
   updatedDate={post.data.updatedDate}
+  readingTime={readingTime}
+  category={category}
 >
   {
-    toc.length >= 3 && (
-      <details class="toc">
-        <summary>目录</summary>
+    tocTree.length >= 3 && (
+      <details class="toc" slot="aside">
+        <summary>
+          <span>目录</span>
+          <span class="toc-count">{toc.length} 节</span>
+          <span class="toc-chevron" aria-hidden="true" />
+        </summary>
         <ol>
-          {toc.map((h) => (
-            <li class={`d${h.depth}`}>
+          {tocTree.map((h) => (
+            <li>
               <a href={`#${h.slug}`}>{h.text}</a>
+              {h.children.length > 0 && (
+                <ul>
+                  {h.children.map((child) => (
+                    <li>
+                      <a href={`#${child.slug}`}>{child.text}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ol>
       </details>
     )
   }
+
   <Content />
+
+  {
+    post.data.tags.length > 0 && (
+      <footer class="post-tax">
+        <span class="post-tax-label">标签</span>
+        <ul class="post-tags">
+          {post.data.tags.map((tag) => (
+            <li>
+              <a href={`/tags/${tag}/`}>#{getTagName(tag)}</a>
+            </li>
+          ))}
+        </ul>
+      </footer>
+    )
+  }
+
   {
     (prev || next) && (
       <nav class="post-nav" aria-label="文章导航">
-        {prev && (
+        {prev ? (
           <a class="prev" href={`/${prev.id}/`}>
             <span class="label">← 上一篇</span>
-            <span class="title">{prev.title}</span>
+            <span class="post-nav-title">{prev.title}</span>
           </a>
+        ) : (
+          <span />
         )}
         {next && (
           <a class="next" href={`/${next.id}/`}>
             <span class="label">下一篇 →</span>
-            <span class="title">{next.title}</span>
+            <span class="post-nav-title">{next.title}</span>
           </a>
         )}
       </nav>
@@ -79,76 +120,224 @@ const description =
 </PostLayout>
 
 <style>
-  /* 目录默认收起，长文才出现；原生 details，无 JS 也能用 */
+  /* 侧边目录：一条细线串起所有标题，层级靠缩进和颜色 */
   .toc {
-    margin: 0 0 2.25em;
-    padding: 0.75rem 1rem;
-    border: 0.5px solid var(--border);
-    border-radius: 8px;
-    font-size: var(--font-size-s);
+    font-size: var(--text-s);
     line-height: 1.6;
-  }
-  .toc summary {
-    cursor: pointer;
-    color: var(--text-secondary);
-    user-select: none;
-  }
-  .toc summary:hover {
-    color: var(--text-primary);
-  }
-  .toc ol {
-    margin: 0.6rem 0 0;
-    padding-left: 1.25rem;
-    line-height: 1.9;
-  }
-  .toc .d3 {
-    margin-left: 0.9rem;
-    list-style-type: circle;
-  }
-  .toc a {
-    color: var(--text-secondary);
-    text-decoration: none;
-  }
-  .toc a:hover {
-    color: var(--text-primary);
-    text-decoration: underline;
-    text-decoration-color: var(--text-tertiary);
-    text-underline-offset: 0.25em;
   }
 
-  /* 上下篇：正文末尾一条细线分隔，两端对齐 */
-  .post-nav {
+  .toc summary {
     display: flex;
-    gap: 1.5rem;
-    margin: 4em 0 0;
-    padding-top: 1.5em;
-    border-top: 1px solid var(--border);
-    font-size: var(--font-size-s);
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+    list-style: none;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    user-select: none;
+  }
+
+  .toc summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .toc summary:hover {
+    color: var(--ink);
+  }
+
+  .toc-count {
+    color: var(--ink-3);
+    letter-spacing: 0.02em;
+  }
+
+  .toc-chevron {
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-left: auto;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg) translateY(-1px);
+    transition: transform var(--dur) var(--ease);
+  }
+
+  .toc[open] .toc-chevron {
+    transform: rotate(-135deg) translateY(-1px);
+  }
+
+  .toc ol {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .toc ul {
+    margin: 0 0 0 0.9rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .toc a {
+    display: block;
+    padding: 0.3rem 0 0.3rem 0.75rem;
+    border-left: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    text-decoration: none;
+    transition:
+      color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+
+  .toc ul a {
+    padding-top: 0.22rem;
+    padding-bottom: 0.22rem;
+    color: var(--ink-3);
+    font-size: 0.7813rem;
+  }
+
+  .toc a:hover {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  /* 文末标签 */
+  .post-tax {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    margin: 3.5rem 0 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    font-size: var(--text-s);
+  }
+
+  .post-tax-label {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .post-tags a {
+    display: inline-flex;
+    padding: 0.22rem 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    color: var(--ink-2);
+    text-decoration: none;
+    transition:
+      color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease);
+  }
+
+  .post-tags a:hover {
+    color: var(--accent);
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+  }
+
+  /* 上下篇：两张卡 */
+  .post-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin: 2.5rem 0 0;
+    font-size: var(--text-s);
     line-height: 1.6;
   }
+
   .post-nav a {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.35rem;
     min-width: 0;
-    color: var(--text-primary);
+    padding: 0.95rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    color: var(--ink);
     text-decoration: none;
+    background: var(--surface);
+    transition:
+      border-color var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
   }
+
+  .post-nav a:hover {
+    border-color: var(--accent-line);
+    box-shadow: var(--shadow-s);
+    transform: translateY(-2px);
+  }
+
   .post-nav .next {
-    margin-left: auto;
     text-align: right;
   }
+
   .post-nav .label {
-    color: var(--text-secondary);
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    color: var(--ink-3);
   }
-  .post-nav .title {
+
+  .post-nav-title {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    font-size: 0.9375rem;
+    font-weight: 500;
   }
-  .post-nav a:hover .title {
-    text-decoration: underline;
-    text-decoration-color: var(--text-tertiary);
-    text-underline-offset: 0.25em;
+
+  .post-nav a:hover .post-nav-title {
+    color: var(--accent);
+  }
+
+  /* 窄屏目录收在标题上方，做成一张轻卡片 */
+  @media (max-width: 1080px) {
+    .toc {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-m);
+      background: var(--paper-2);
+    }
+    .toc summary {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+    .toc-count {
+      margin-left: auto;
+    }
+    .toc-chevron {
+      margin-left: 0.35rem;
+    }
+    .toc ol {
+      margin-top: 0.6rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--line);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .post-nav {
+      grid-template-columns: 1fr;
+    }
+    .post-nav .next {
+      text-align: left;
+    }
   }
 </style>

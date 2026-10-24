@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
-import { themeConfig } from '@/config';
+import { getCategory, getTagName, themeConfig } from '@/config';
 
 const esc = (s = '') =>
   s.replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c]!);
@@ -27,12 +27,17 @@ export const GET: APIRoute = async ({ site }) => {
         .trim();
       const lead = plain.split(/(?<=[。！？.!?])/)[0] ?? plain;
       const desc = post.data.description ?? (lead.length > 80 ? `${lead.slice(0, 80)}…` : lead);
+      // 分类和标签各输出一个 <category>，RSS 阅读器会把它们做成筛选入口
+      const labels = [getCategory(post.data.category).name, ...post.data.tags.map(getTagName)]
+        .map((label) => `      <category>${esc(label)}</category>`)
+        .join('\n');
       return `    <item>
       <title>${esc(post.data.title)}</title>
       <link>${url}</link>
       <guid>${url}</guid>
       <pubDate>${post.data.pubDate.toUTCString()}</pubDate>
       <description>${esc(desc)}</description>
+${labels}
     </item>`;
     })
     .join('\n');

@@ -1,0 +1,44 @@
+---
+/**
+ * 文章卡片网格：首页、分类页、标签页共用。
+ * 卡片带分类色、日期、两行摘要和阅读时间；摘要取 frontmatter description，
+ * 没有就回退到正文第一句，保证每张卡都有内容可看。
+ */
+import type { CollectionEntry } from 'astro:content';
+import { excerptFrom, formatPostDate, getCategory, readingMinutes } from '@/config';
+
+interface Props {
+  posts: CollectionEntry<'blog'>[];
+}
+
+const { posts } = Astro.props;
+---
+
+<ul class="post-grid">
+  {
+    posts.map((post) => {
+      const category = getCategory(post.data.category);
+      const excerpt = post.data.description ?? excerptFrom(post.body, 70);
+      return (
+        <li class="post-item" data-cat={post.data.category}>
+          <a class={`post-card cat-${category.id}`} href={`/${post.id}/`}>
+            <span class="card-top">
+              <span class="cat">{category.name}</span>
+              <time datetime={post.data.pubDate.toISOString().slice(0, 10)}>
+                {formatPostDate(post.data.pubDate)}
+              </time>
+            </span>
+            <h3 class="card-title">{post.data.title}</h3>
+            <p class="card-excerpt">{excerpt}</p>
+            <span class="card-foot">
+              <span>{readingMinutes(post.body)} 分钟阅读</span>
+              <span class="arrow" aria-hidden="true">
+                →
+              </span>
+            </span>
+          </a>
+        </li>
+      );
+    })
+  }
+</ul>

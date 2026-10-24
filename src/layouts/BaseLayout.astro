@@ -1,10 +1,12 @@
 ---
 /**
- * 全站外壳：<head>、页头导航、可选工具栏、内容区、页脚。
+ * 全站外壳：<head>、吸顶页头、内容区、页脚、明暗主题开关。
  *
  * 刻意只留这一个通用布局：从前 BaseHead / Header / Footer 三个组件加上
  * BaseLayout / IndexLayout 两层布局，每个页面要 import 四五个文件才拼出一个外壳，
  * 而它们都只被本站三四个页面用到，收益不抵开销。现在页面只 import 这一个。
+ *
+ * 页头页脚都是 76rem 宽的通栏，正文页自己决定内部网格（文章页是「侧边目录 + 正文」）。
  */
 import '@/styles/global.css';
 import { siteNav, themeConfig } from '@/config';
@@ -12,10 +14,6 @@ import { siteNav, themeConfig } from '@/config';
 interface Props {
   title: string;
   description?: string;
-  /** 固定视口外壳：页面本身不滚动，只有内容区滚动（首页文章列表用） */
-  shell?: boolean;
-  /** 内容区宽度上限（rem）。窄栏放正文，宽栏放友链卡片 */
-  maxWidth?: number;
   /** og:type。文章页传 article，其余用 website */
   ogType?: 'website' | 'article';
   /** 分享卡片图，绝对路径或相对 Astro.site 的路径；传 null 表示不输出 */
@@ -28,12 +26,9 @@ interface Props {
   jsonLd?: Record<string, unknown> | null;
 }
 
-const defaultWidth = parseFloat(themeConfig.contentWidth) || 35;
 const {
   title,
   description = themeConfig.site.description,
-  shell = false,
-  maxWidth = defaultWidth,
   ogType = 'website',
   ogImage = themeConfig.site.ogImage,
   publishedTime,
@@ -44,22 +39,32 @@ const { language, author } = themeConfig.site;
 const year = new Date().getFullYear();
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const currentPath = Astro.url.pathname;
-// 首页的站点名是整页唯一的一级标题；其它页面的 h1 留给正文标题
-const isHome = currentPath === '/';
 const ogImageURL = ogImage ? new URL(ogImage, Astro.site).href : null;
+const contentWidth = parseFloat(themeConfig.contentWidth) || 43;
 ---
 
 <!doctype html>
 <html lang={language}>
   <head>
     <meta charset="utf-8" />
+    <!-- 先定主题再渲染，避免深色模式刷新时闪一下白 -->
+    <script is:inline>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = saved || (dark ? 'dark' : 'light');
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="alternate" type="application/rss+xml" title={themeConfig.site.title} href="/rss.xml" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1c1c1c" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)" />
 
     <link rel="canonical" href={canonicalURL} />
     <title>{title}</title>
@@ -93,55 +98,119 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).href : null;
     }
   </head>
 
-  <body
-    data-shell={shell ? 'true' : undefined}
-    style={`max-width: ${maxWidth}rem; --content-width: ${maxWidth}rem;`}
-  >
+  <body style={`--content-width: ${contentWidth}rem;`}>
     <a class="skip-link" href="#main">跳到正文</a>
 
-    <div class="page">
-      <header>
-        <nav>
-          {isHome ? (
-            <h1 class="site-title-h">
-              <a class="site-title" href="/">
-                {themeConfig.site.title}
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="/">
+          {themeConfig.site.title}
+        </a>
+        <nav class="site-nav" aria-label="站点导航">
+          {
+            siteNav.map((item) => (
+              <a href={item.href} aria-current={currentPath === item.href ? 'page' : undefined}>
+                {item.label}
               </a>
-            </h1>
-          ) : (
-            <a class="site-title" href="/">
-              {themeConfig.site.title}
-            </a>
-          )}
-          <div class="site-links">
-            {
-              siteNav.map((item) => (
-                <a href={item.href} aria-current={currentPath === item.href ? 'page' : undefined}>
-                  {item.label}
-                </a>
-              ))
-            }
-          </div>
+            ))
+          }
         </nav>
-      </header>
-
-      <div class="toolbar">
-        <slot name="toolbar" />
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式">
+          <svg class="icon-sun" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="3.1" stroke="currentColor" stroke-width="1.4"></circle>
+            <path
+              d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"></path>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6 5.9 5.9 0 1 0 13.4 9.6Z"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linejoin="round"></path>
+          </svg>
+        </button>
       </div>
+    </header>
 
-      <main id="main" class="scroll-area" tabindex="-1">
+    <main id="main" tabindex="-1">
+      <div class="shell">
         <slot />
-      </main>
+      </div>
+    </main>
 
-      <footer>
-        <div class="copyright">&copy; {year} {author}</div>
-        <div class="powered-by">
-          Powered by <a href="https://astro.build">Astro</a>
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="/">{themeConfig.site.title}</a>
+          <p>{themeConfig.site.description}</p>
         </div>
-      </footer>
-    </div>
+        <nav class="footer-nav" aria-label="页脚导航">
+          {
+            siteNav.map((item) => (
+              <a href={item.href}>{item.label}</a>
+            ))
+          }
+          <a href="/rss.xml">RSS</a>
+        </nav>
+        <div class="footer-meta">
+          <p>&copy; {year} {author}</p>
+          <p>Powered by <a href="https://astro.build">Astro</a></p>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
+
+<script is:inline>
+  (function () {
+    var btn = document.getElementById('theme-toggle');
+    var root = document.documentElement;
+    if (!btn) return;
+
+    function label() {
+      btn.setAttribute('aria-label', root.dataset.theme === 'dark' ? '切换到浅色模式' : '切换到深色模式');
+    }
+
+    // 评论区是第三方 iframe，不会自己跟着本站的手动主题走，切换后单独通知它
+    function syncGiscus() {
+      var theme = root.dataset.theme === 'dark' ? 'dark' : 'light';
+      document.querySelectorAll('iframe.giscus-frame').forEach(function (frame) {
+        frame.contentWindow.postMessage({ giscus: { setConfig: { theme: theme } } }, 'https://giscus.app');
+      });
+    }
+
+    btn.addEventListener('click', function () {
+      var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem('theme', next);
+      } catch (e) {}
+      label();
+      syncGiscus();
+    });
+
+    // 没手动选过时跟随系统变化；选过就尊重用户的选择
+    try {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener('change', function (e) {
+        if (localStorage.getItem('theme')) return;
+        root.dataset.theme = e.matches ? 'dark' : 'light';
+        label();
+        syncGiscus();
+      });
+    } catch (e) {}
+
+    // giscus 是懒加载的，等它的 iframe 出现后再同步一次主题
+    new MutationObserver(function () {
+      if (document.querySelector('iframe.giscus-frame')) syncGiscus();
+    }).observe(document.body, { childList: true, subtree: true });
+
+    label();
+  })();
+</script>
 
 <style>
   /* 键盘用户第一下 Tab 就能跳过页头；鼠标用户看不见它 */
@@ -151,146 +220,21 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).href : null;
     left: 1rem;
     z-index: 100;
     padding: 0.4rem 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-size: var(--font-size-s);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-s);
     text-decoration: none;
     transform: translateY(-250%);
-    transition: transform 0.15s ease-out;
+    transition: transform var(--dur) var(--ease);
   }
   .skip-link:focus-visible {
     transform: translateY(0);
   }
+
   /* 跳到正文后焦点落在整个内容区，不要给它画一个框 */
   main:focus {
     outline: none;
-  }
-
-  /* 滚动外壳：.page 撑满视口，只有 main 滚动，页头页脚固定 */
-  .page {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-  body[data-shell='true'] {
-    height: 100vh;
-    height: 100dvh;
-  }
-  body[data-shell='true'] .page {
-    height: 100%;
-  }
-
-  header {
-    flex: none;
-  }
-  nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  /* 首页用 h1 包住站点名：清掉 h1 的默认上下边距，视觉与其它页面保持一致 */
-  .site-title-h {
-    margin: 0;
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
-  }
-  .site-title {
-    font-size: var(--font-size-l);
-    font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
-    text-decoration: none;
-    display: inline-block;
-  }
-  .site-links {
-    display: flex;
-    gap: 1rem;
-  }
-  .site-links a {
-    color: var(--text-secondary);
-    text-decoration: none;
-  }
-  .site-links a:hover,
-  .site-links a[aria-current='page'] {
-    color: var(--text-primary);
-  }
-
-  /* 只有首页会填这个插槽；其它页面为空，整块收起来，不占高度也不留间距 */
-  .toolbar {
-    display: none;
-  }
-  .toolbar:has(> *) {
-    display: block;
-    flex: none;
-  }
-
-  /* 长文页面：整页滚动。滚动外壳页面：只有这里滚动 */
-  main {
-    flex: 1;
-    min-height: 0;
-  }
-  body[data-shell='true'] main {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    /* 给滚动条留固定槽位：搜索过滤后列表变短、滚动条消失时，正文不会左右跳 */
-    scrollbar-gutter: stable;
-  }
-  /* 注意：这里只能用 ::-webkit-scrollbar，不能同时写 scrollbar-width/color。
-     Chromium 一旦看到那两个标准属性，就会放弃下方样式改用系统浮层滚动条，
-     而浮层滚动条不占位、悬浮在内容之上，正好盖住右侧的日期。 */
-  body[data-shell='true'] main::-webkit-scrollbar {
-    width: 6px;
-  }
-  body[data-shell='true'] main::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-  }
-  body[data-shell='true'] main::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  /* 不认 ::-webkit-scrollbar 的浏览器（Firefox）才走标准属性 */
-  @supports not selector(::-webkit-scrollbar) {
-    body[data-shell='true'] main {
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-  }
-
-  footer {
-    flex: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: nowrap;
-    margin-top: 1.5rem;
-    font-size: var(--font-size-s);
-    font-weight: var(--font-weight-light);
-    line-height: 1.75;
-    color: var(--text-secondary);
-  }
-  /* 滚动外壳里页脚不参与滚动，去掉上边距免得把内容区挤短 */
-  body[data-shell='true'] footer {
-    margin-top: 0.75rem;
-  }
-  footer div {
-    white-space: nowrap;
-  }
-  footer a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: color 0.2s ease-out;
-  }
-  footer a:hover {
-    color: var(--text-primary);
-  }
-  @media (max-width: 480px) {
-    footer {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.25rem;
-    }
   }
 </style>

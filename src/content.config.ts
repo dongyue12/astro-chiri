@@ -1,6 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { categoryIds } from './config';
 
 const blog = defineCollection({
   // 文章清单：blog/ 下的 Markdown。
@@ -22,6 +23,10 @@ const blog = defineCollection({
     description: z.string().optional(),
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
+    // 分类与标签：category 只能取 config.ts 里登记的 id，写错在构建时就报错；
+    // tags 留成任意字符串（id），遇到没登记的标签页面上回落到 id 本身。
+    category: z.enum(categoryIds).default('misc'),
+    tags: z.array(z.string()).default([]),
   }),
 });
 

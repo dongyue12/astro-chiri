@@ -1,0 +1,99 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getTagName, themeConfig } from '@/config';
+
+const posts = await getCollection('blog');
+const counts = new Map<string, number>();
+for (const post of posts) {
+  for (const tag of post.data.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+}
+
+// 用得多的排前面，数量相同的按显示名排，保证每次构建顺序一致
+const rows = [...counts.entries()]
+  .map(([id, count]) => ({ id, name: getTagName(id), count }))
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'));
+---
+
+<BaseLayout title={`标签 · ${themeConfig.site.title}`}>
+  <header class="page-hero">
+    <h1>标签</h1>
+    <p class="lead">
+      {posts.length} 篇文章，{rows.length} 个标签。标签比分类更具体，适合顺着一类问题往下读。
+    </p>
+  </header>
+
+  <ul class="tag-cloud">
+    {
+      rows.map((tag) => (
+        <li>
+          <a class="tag-pill" href={`/tags/${tag.id}/`} data-count={tag.count}>
+            {tag.name}
+            <span class="tag-count">{tag.count}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>
+
+<style>
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    max-width: 60rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tag-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    text-decoration: none;
+    transition:
+      border-color var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
+  }
+
+  .tag-pill:hover {
+    color: var(--accent);
+    border-color: var(--accent-line);
+    transform: translateY(-2px);
+  }
+
+  /* 用得少的标签收小一号，云团自然有主次，不用再分组 */
+  .tag-pill[data-count='1'] {
+    padding: 0.38rem 0.8rem;
+    font-size: 0.875rem;
+    color: var(--ink-2);
+  }
+
+  .tag-count {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    transition: color var(--dur) var(--ease);
+  }
+
+  /* 用间隔点把标签名和计数分开，否则「Windows」和「11」会读成一个词 */
+  .tag-count::before {
+    content: '·';
+    margin-right: 0.35em;
+  }
+
+  .tag-pill:hover .tag-count {
+    color: var(--accent);
+  }
+</style>

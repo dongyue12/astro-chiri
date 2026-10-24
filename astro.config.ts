@@ -9,9 +9,9 @@ import { themeConfig } from './src/config';
 
 // 正文图片的 sizes。Astro 默认按「占满视口」（100vw）估算，于是浏览器在固定宽度的
 // 正文栏里也会一路挑中最宽的档位，多档 srcset 等于白生成。
-// 可用宽度 = 内容栏宽度 − body 左右内边距（各 1.5rem），末档是移动端的实际视口宽度。
-const COLUMN_PX = Math.round(parseFloat(themeConfig.contentWidth) * 16 - 48);
-const IMAGE_SIZES = `(min-width: 769px) ${COLUMN_PX}px, calc(100vw - 43px)`;
+// 正文栏本身就是 contentWidth 那么宽（没有额外内边距），末档是移动端的实际视口宽度。
+const COLUMN_PX = Math.round(parseFloat(themeConfig.contentWidth) * 16);
+const IMAGE_SIZES = `(min-width: 769px) ${COLUMN_PX}px, calc(100vw - 48px)`;
 
 async function htmlFilesIn(dir) {
   const found = [];

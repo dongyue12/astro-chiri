@@ -3,13 +3,9 @@ import PostLayout from '@/layouts/PostLayout.astro';
 import { themeConfig } from '@/config';
 ---
 
-<PostLayout title="留言" description={`${themeConfig.site.title}的留言板`} commentTitle="">
-  <p class="intro">欢迎在这里留言交流。</p>
-</PostLayout>
-
-<style>
-  .intro {
-    color: var(--text-secondary);
-    margin: 0 0 2rem;
-  }
-</style>
+<PostLayout
+  title="留言"
+  heading="留言"
+  description="欢迎在这里留言交流。想交换友链、指出文章里的错误，或者只是打个招呼，都可以写在这里。"
+  commentTitle=""
+/>

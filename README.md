@@ -2,6 +2,9 @@
 
 基于 Astro 的中文技术笔记，文章位于 `blog/`，构建产物是纯静态文件。
 
+视觉上是「技术刊物」：宽幅版式、大字号标题、卡片索引、分类色、明暗双主题。
+全站样式集中在 `src/styles/global.css`，颜色用 `light-dark()` 成对声明，主题切换只改 `color-scheme`。
+
 ## 命令
 
 ```sh
@@ -20,22 +23,42 @@ pnpm preview   # 预览构建结果
 
 ```
 astro.config.ts       构建配置：站点、图片 sizes 修正、Markdown/Shiki
-src/config.ts         站点配置（站点信息、栏宽、日期格式、友链、导航）
+src/config.ts         站点配置（站点信息、栏宽、日期格式、导航、分类、标签、友链）
 src/content.config.ts 文章集合与 frontmatter 校验规则
+src/components/
+  PostGrid.astro      文章卡片网格：首页、分类页、标签页共用
 src/layouts/
-  BaseLayout.astro    全站外壳：<head> + 页头 + 页脚 + 可选滚动外壳
-  PostLayout.astro    文章/留言页：标题、日期、正文、giscus 评论、返回顶部
+  BaseLayout.astro    全站外壳：<head> + 吸顶页头 + 页脚 + 明暗主题开关
+  PostLayout.astro    文章/留言页：标题区、正文、侧边目录插槽、评论、阅读进度
 src/pages/
-  index.astro         首页：文章列表 + 纯前端搜索
+  index.astro         首页：站点主张 + 最新一篇 + 分类筛选 + 搜索 + 卡片索引
+  [...slug].astro     文章动态路由（正文 + 目录 + 标签 + 上下篇）
+  categories/         分类总览与分类页
+  tags/               标签总览与标签页
   friends.astro       友链页
   message.astro       留言页
-  [...slug].astro     文章动态路由
-src/styles/global.css 全部样式（设计变量 + 正文排版）
+  rss.xml.ts          RSS
+src/styles/global.css 全部样式（设计变量 + 骨架 + 组件 + 正文排版）
+public/fonts/         Inter（拉丁）与 JetBrains Mono（元信息），自托管
 blog/                 文章 Markdown + assets/ 图片
 blog/待处理文章/       草稿暂存区，不发布、不校验
 ```
 
-新增页面时：能复用 `BaseLayout` 就复用；只有需要「标题 + 日期 + 评论」时才用 `PostLayout`。
+新增页面时：能复用 `BaseLayout` 就复用；只有需要「标题 + 日期 + 正文 + 评论」时才用 `PostLayout`。
+
+## 文章 frontmatter
+
+```yaml
+---
+title: 'VSCode 快捷键'
+pubDate: '2026-09-23'
+category: dev             # system / dev / misc
+tags: [vscode, shortcuts] # id 要在 src/config.ts 的 tags 里登记
+description: VSCode 里最常用的一批快捷键，按编辑、导航和终端分组。
+---
+```
+
+分类和标签页会自动生成，完整的写作规则见 `blog/待处理文章/格式说明.md`。
 
 ## 开发
 

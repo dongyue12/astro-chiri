@@ -12,19 +12,23 @@ const selfAvatar = new URL(self.avatar!, themeConfig.site.website).href;
 const initial = (name: string) => [...name.trim()][0] ?? '?';
 ---
 
-<BaseLayout title={title} maxWidth={50}>
-  <h1>友链</h1>
+<BaseLayout title={title}>
+  <header class="page-hero">
+    <h1>友链</h1>
+    <p class="lead">一些常读的站点。想交换友链，去留言板留个地址就行。</p>
+  </header>
 
-  <section class="self" aria-label="本站信息">
-    <p class="section-title">本站</p>
-    <div class="card">
-      <div class="row">
-        <img class="avatar" src={self.avatar} alt="" width="40" height="40" loading="lazy" />
-        <span class="meta">
-          <span class="name">{self.name}</span>
-          <span class="desc">{self.description}</span>
-        </span>
-        <button id="copy-info" class="copy" type="button">复制信息</button>
+  <section aria-labelledby="self-title">
+    <h2 class="section-title" id="self-title">本站</h2>
+    <div class="self-card">
+      <div class="profile">
+        <img class="avatar" src={self.avatar} alt="" width="64" height="64" loading="lazy" />
+        <div class="profile-text">
+          <p class="name">{self.name}</p>
+          <p class="desc">{self.description}</p>
+          <p class="url">{self.url}</p>
+          <button id="copy-info" class="copy" type="button">复制信息</button>
+        </div>
       </div>
       <dl class="info">
         <dt>名称</dt><dd>{self.name}</dd>
@@ -35,14 +39,14 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     </div>
   </section>
 
-  <section aria-label="友链列表">
-    <p class="section-title">朋友们</p>
+  <section aria-labelledby="friends-title">
+    <h2 class="section-title" id="friends-title">朋友们</h2>
     {
       links.length ? (
-        <ul>
+        <ul class="friend-grid">
           {links.map((friend) => (
             <li>
-              <a href={friend.url} target="_blank" rel="noopener noreferrer">
+              <a class="friend-card" href={friend.url} target="_blank" rel="noopener noreferrer">
                 {/* 首字始终垫在底层，外链头像加载失败就移除自己，露出首字 */}
                 <span class="avatar-slot">
                   <span class="placeholder" aria-hidden="true">{initial(friend.name)}</span>
@@ -51,8 +55,8 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
                       class="avatar-img"
                       src={friend.avatar}
                       alt=""
-                      width="40"
-                      height="40"
+                      width="48"
+                      height="48"
                       loading="lazy"
                       onerror="this.remove()"
                     />
@@ -62,6 +66,7 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
                   <span class="name">{friend.name}</span>
                   {friend.description && <span class="desc">{friend.description}</span>}
                 </span>
+                <span class="go" aria-hidden="true">↗</span>
               </a>
             </li>
           ))}
@@ -73,7 +78,7 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
   </section>
 
   <section class="comments" aria-label="友链评论">
-    <p class="section-title">留言交流</p>
+    <h2 class="section-title">留言交流</h2>
     <script
       src="https://giscus.app/client.js"
       data-repo="dongyue12/giscus"
@@ -125,130 +130,203 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
 </script>
 
 <style>
-  h1 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin: 1.25rem 0 1.75rem;
-  }
   .section-title {
-    color: var(--text-secondary);
-    font-size: var(--font-size-s);
-    font-weight: var(--font-weight-light);
-    margin: 0 0 0.75rem;
-  }
-  section + section {
-    margin-top: 2.5rem;
-  }
-  .comments {
-    margin-bottom: 4rem;
-  }
-  .card {
-    padding: 0.75rem;
-    border: 0.5px solid var(--border);
-    border-radius: 0.5rem;
-  }
-  .row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.9rem;
+    margin: 0 0 1rem;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
   }
-  .copy {
-    margin-left: auto;
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  section + section {
+    margin-top: 3.5rem;
+  }
+
+  .comments {
+    margin-bottom: 2rem;
+  }
+
+  /* 本站信息：左边名片，右边一份可复制的完整字段 */
+  .self-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 2rem;
+    padding: 1.6rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+
+  .profile {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .profile-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .profile-text p {
+    margin: 0;
+  }
+  .profile-text .name {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .profile-text .desc {
+    margin-top: 0.25rem;
+    color: var(--ink-2);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+  }
+
+  .profile-text .url {
+    margin-top: 0.5rem;
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+    color: var(--ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  .avatar {
     flex-shrink: 0;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: var(--paper-2);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+
+  .copy {
+    margin-top: 0.9rem;
     font: inherit;
-    font-size: var(--font-size-s);
-    color: var(--text-secondary);
-    background: none;
-    border: 0.5px solid var(--border);
-    border-radius: 0.375rem;
-    padding: 0.25rem 0.6rem;
+    font-size: var(--text-s);
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    padding: 0.35rem 0.85rem;
     cursor: pointer;
     transition:
-      color 0.15s ease-out,
-      border-color 0.15s ease-out;
+      border-color var(--dur) var(--ease),
+      background-color var(--dur) var(--ease);
   }
+
   .copy:hover {
-    color: var(--text-primary);
-    border-color: var(--text-tertiary);
+    border-color: var(--accent-line);
   }
-  /* 完整信息两列并排，卡片高度省一半；窄屏回落成单列 */
+
   .info {
     display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem minmax(0, 1fr);
-    gap: 0.25rem 0.5rem;
-    margin: 0.75rem 0 0;
-    padding-top: 0.75rem;
-    border-top: 0.5px solid var(--border);
-    font-size: var(--font-size-s);
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    align-content: start;
+    gap: 0.5rem 1rem;
+    margin: 0;
+    padding-left: 2rem;
+    border-left: 1px solid var(--line);
+    font-size: var(--text-s);
     line-height: 1.6;
   }
-  @media (max-width: 600px) {
-    .info {
-      grid-template-columns: 3.5rem minmax(0, 1fr);
-    }
-  }
+
   .info dt {
-    color: var(--text-secondary);
+    color: var(--ink-3);
   }
+
   .info dd {
     margin: 0;
     min-width: 0;
     overflow-wrap: anywhere;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
   }
-  .empty {
-    color: var(--text-secondary);
-    font-weight: var(--font-weight-light);
-    margin: 0;
-  }
-  ul {
+
+  /* 友链卡片：三列，悬停整块上浮 */
+  .friend-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
     list-style: none;
     padding: 0;
     margin: 0;
   }
-  li + li {
-    border-top: 0.5px solid var(--border);
-  }
-  li a {
+
+  .friend-card {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 0;
-    color: var(--text-primary);
+    gap: 0.85rem;
+    height: 100%;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    background: var(--surface);
+    color: var(--ink);
     text-decoration: none;
+    transition:
+      border-color var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
   }
-  li a:hover .name {
-    text-decoration: underline;
-    text-decoration-color: var(--text-tertiary);
-    text-underline-offset: 0.25em;
+
+  .friend-card:hover {
+    border-color: var(--accent-line);
+    box-shadow: var(--shadow-m);
+    transform: translateY(-2px);
   }
-  .avatar {
-    flex-shrink: 0;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: var(--code-bg);
+
+  .go {
+    margin-left: auto;
+    flex: none;
+    font-size: 0.8125rem;
+    color: var(--ink-3);
+    transition:
+      color var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
   }
+
+  .friend-card:hover .go {
+    color: var(--accent);
+    transform: translate(2px, -2px);
+  }
+
   /* 头像槽：首字占位在底层，外链图覆盖在上层，加载失败时自然露出首字 */
   .avatar-slot {
     position: relative;
     flex-shrink: 0;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 3rem;
     border-radius: 50%;
     overflow: hidden;
-    background-color: var(--code-bg);
+    background-color: var(--paper-2);
+    box-shadow: 0 0 0 1px var(--line);
   }
+
   .avatar-slot .placeholder {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary);
-    font-size: var(--font-size-s);
+    color: var(--ink-3);
+    font-size: var(--text-s);
     user-select: none;
   }
+
   .avatar-img {
     position: absolute;
     inset: 0;
@@ -256,12 +334,14 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     height: 100%;
     object-fit: cover;
   }
+
   .meta {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    line-height: 1.5;
+    line-height: 1.45;
   }
+
   .name,
   .desc {
     min-width: 0;
@@ -269,9 +349,45 @@ const initial = (name: string) => [...name.trim()][0] ?? '?';
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+
+  .name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+
   .desc {
-    color: var(--text-secondary);
-    font-size: var(--font-size-s);
-    font-weight: var(--font-weight-light);
+    color: var(--ink-2);
+    font-size: var(--text-s);
+  }
+
+  .empty {
+    color: var(--ink-2);
+    margin: 0;
+  }
+
+  @media (max-width: 1000px) {
+    .friend-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .self-card {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    .info {
+      padding-left: 0;
+      border-left: 0;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--line);
+      grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .friend-grid {
+      grid-template-columns: 1fr;
+    }
+    .info {
+      grid-template-columns: 3.5rem minmax(0, 1fr);
+    }
   }
 </style>
