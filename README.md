@@ -1,84 +1,105 @@
 # 冬月的博客
 
-基于 Astro 的中文技术笔记，文章位于 `blog/`，构建产物是纯静态文件。
+https://dongyue.org/ — 记录 Windows、开发工具与自建服务的中文笔记站。
 
-视觉上是「技术刊物」：宽幅版式、大字号标题、卡片索引、分类色、明暗双主题。
-全站样式集中在 `src/styles/global.css`，颜色用 `light-dark()` 成对声明，主题切换只改 `color-scheme`。
+**Astro 7 + [Firefly](https://github.com/CuteLeaf/Firefly) 6.16.8 主题**，纯静态输出，
+部署在 Cloudflare Pages。26 篇文章，带分类/标签/归档/系列/全文搜索/明暗主题/评论。
+
+> 2026-10 从自建的极简版式整体换成 Firefly：文章从 `blog/` 迁到 `src/content/posts/`，
+> URL 从 `/<id>/` 变成 `/posts/<id>/`，旧地址用 301 兜住（见「旧地址兼容」）。
+> `blog/` 目录留作迁移前的原始手稿，**不再参与构建**，也别再往里加新文章。
 
 ## 命令
 
+Node **≥ 22.23**（推荐 24），包管理用 pnpm（`package.json` 里锁了 `pnpm@11.22.0`）。
+
 ```sh
-pnpm install   # 安装依赖
-pnpm dev       # 启动开发服务器
-pnpm build     # 构建生产文件到 dist/
-pnpm preview   # 预览构建结果
+pnpm install        # 安装依赖
+pnpm dev            # 开发服务器 http://localhost:4321
+pnpm build:site     # 构建到 dist/ 并生成搜索索引 ← 部署用这个
+pnpm preview        # 预览 dist/
+pnpm check          # astro check（类型/内容 schema 校验）
+pnpm lint           # biome 检查并修复 src/ scripts/
+pnpm new-post       # 新建文章（scripts/new-post.js）
 ```
 
-> 若 `pnpm build` 在当前环境报 pnpm 依赖检查的 TTY 错误，可直接走 Astro 入口：
-> `node node_modules/astro/bin/astro.mjs build`
+`pnpm build` 是**全量**构建：抓 GitHub 卡片数据、生成 LQIP 占位图、抓 VNDB 封面、
+`astro build`、清理 pio 资源、字体子集化、压缩内联脚本、建 pagefind 索引。
+其中抓数据几步要联网且较慢；只改版式或写文章时用 `pnpm build:site` 就够了。
 
 ## 目录结构
 
-刻意保持扁平：能合进一个文件的不拆成两个，能合成一层的不分两层。
+主题目录偏多，改东西时有三个入口就够：**配置看 `src/config/`，文章看 `src/content/posts/`，
+样式看 `src/styles/`**。
 
 ```
-astro.config.ts       构建配置：站点、图片 sizes 修正、Markdown/Shiki
-src/config.ts         站点配置（站点信息、栏宽、日期格式、导航、分类、标签、友链）
-src/content.config.ts 文章集合与 frontmatter 校验规则
-src/components/
-  PostGrid.astro      文章卡片网格：首页、分类页、标签页共用
-src/layouts/
-  BaseLayout.astro    全站外壳：<head> + 吸顶页头 + 页脚 + 明暗主题开关
-  PostLayout.astro    文章/留言页：标题区、正文、侧边目录插槽、评论、阅读进度
-src/pages/
-  index.astro         首页：站点主张 + 最新一篇 + 分类筛选 + 搜索 + 卡片索引
-  [...slug].astro     文章动态路由（正文 + 目录 + 标签 + 上下篇）
-  categories/         分类总览与分类页
-  tags/               标签总览与标签页
-  friends.astro       友链页
-  message.astro       留言页
-  rss.xml.ts          RSS
-src/styles/global.css 全部样式（设计变量 + 骨架 + 组件 + 正文排版）
-public/fonts/         Inter（拉丁）与 JetBrains Mono（元信息），自托管
-blog/                 文章 Markdown + assets/ 图片
-blog/待处理文章/       草稿暂存区，不发布、不校验
+astro.config.mjs        构建配置：站点、Svelte/Tailwind/MDX/Swup、代码块、Mermaid/PlantUML、字体子集
+wrangler.toml           Cloudflare Pages 配置，产物目录 ./dist
+src/
+  config/               一堆 xxxConfig.ts，一个域一个文件，统一从 index.ts 导出
+    siteConfig.ts       站点标题、副标题、URL、导航栏、页面开关（关掉的页面会构建成跳 /404/）
+    fontConfig.ts       自托管字体清单（子集化的源文件放 public/assets/fonts/）
+    navBarConfig.ts / sidebarConfig.ts / commentConfig.ts / friendsConfig.ts / ...
+  content/
+    posts/              文章 Markdown/MDX（当前 26 篇），assets/ 放文内图片
+    spec/               about / friends / guestbook 三个独立页面的内容
+  layouts/
+    Layout.astro        全站外壳：<head>、页头、页脚、主题脚本、各项特效组件
+    MainGridLayout.astro 网格布局（左中右栏 + 侧边栏插槽）
+  components/           analytics / comment / common / controls / features / layout / misc / pages / widget
+  pages/                [...page].astro（首页分页）、posts/[...slug].astro（文章）、
+                        categories、tags、archive、series、search、friends、guestbook、rss.xml、
+                        sitemap、robots.txt、og/（动态 OG 图）、api/（JSON 接口）
+  styles/               main.css 是入口（@import 一堆分区样式），variables.styl 放变量；没有 global.css
+  plugins/              各类 remark/rehype 插件（mermaid、plantuml、图组、外链、邮件保护、GitHub 卡片…）
+  i18n/                 6 种语言的文案表
+scripts/                构建期脚本：字体子集、LQIP、GitHub 卡片、VNDB 封面、pagefind、新建文章
+public/
+  _headers              Cloudflare 安全头与缓存策略
+  _redirects            旧 URL → 新 URL 的 301（Cloudflare / Netlify 生效）
+  1/ … 26/、message/、categories/*、tags/*   旧地址的静态跳转垫片（不支持 _redirects 的托管也能跳）
+  assets/fonts/         字体源文件（子集化后输出到 dist/_astro/fonts）
+blog/                   迁移前的手稿，仅存档，不参与构建
+audit/                  迁移期逐版截图，本地对比用，已进 .gitignore
 ```
 
-新增页面时：能复用 `BaseLayout` 就复用；只有需要「标题 + 日期 + 正文 + 评论」时才用 `PostLayout`。
+## 写文章
 
-## 文章 frontmatter
+放到 `src/content/posts/`，文件名就是 URL 的一段：`27.某某.md` → `/posts/27/`。
 
 ```yaml
 ---
-title: 'VSCode 快捷键'
-pubDate: '2026-09-23'
-category: dev             # system / dev / misc
-tags: [vscode, shortcuts] # id 要在 src/config.ts 的 tags 里登记
-description: VSCode 里最常用的一批快捷键，按编辑、导航和终端分组。
+title: "Git 自动转成 SSH"
+published: 2026-09-08          # 必填
+description: "把 HTTPS 远程仓库换成 SSH，省掉每次推送都要输账号密码的麻烦。"
+tags: ["git", "ssh"]
+category: "开发工具"
+draft: false                   # true 不进构建
+series: "Git 实用笔记"          # 可选：系列名与次序
+seriesOrder: 2
 ---
 ```
 
-分类和标签页会自动生成，完整的写作规则见 `blog/待处理文章/格式说明.md`。
+其余可选字段见 `src/content.config.ts` 的 schema：`image`（封面）、`pinned`、`password`（加密文章）、
+`lang`、`author`、`licenseName` 等。`dynamic` / `projects` 两个集合目前是空的（页面开关也关着）。
 
-## 开发
+## 旧地址兼容
 
-启动开发服务器用后台模式：
+旧站文章在根路径（`/3/`），Firefly 在 `/posts/3/`。两边都做了：
 
-```
-astro dev --background
-```
+- `public/_redirects`：301 规则（Cloudflare Pages / Netlify 直接生效）
+- `public/<id>/index.html`：`meta refresh` + `location.replace` 垫片，另有 `/message/`→`/guestbook/`、
+  `/categories/<id>/`→`/categories/`
 
-用 `astro dev stop`、`astro dev status`、`astro dev logs` 管理。
+新增文章不需要动这两个地方（新文章没有旧地址）。**新增/删除文章后想清理垫片**，记得两边一起删。
 
-## 文档
+## 部署
 
-完整文档：https://docs.astro.build
+见 [DEPLOY.md](./DEPLOY.md)：Cloudflare Pages，构建命令 `pnpm build:site`，输出目录 `dist`，
+Node 22.23+；也可 `wrangler pages deploy dist` 手工上传。
 
-相关主题的指南：
+## 本地构建的两个坑
 
-- [新增页面、动态路由或中间件](https://docs.astro.build/en/guides/routing/)
-- [编写 Astro 组件](https://docs.astro.build/en/basics/astro-components/)
-- [使用 React、Vue、Svelte 等框架组件](https://docs.astro.build/en/guides/framework-components/)
-- [新增或管理内容](https://docs.astro.build/en/guides/content-collections/)
-- [样式与 Tailwind](https://docs.astro.build/en/guides/styling/)
-- [多语言支持](https://docs.astro.build/en/guides/internationalization/)
+- **Node 版本**：`package.json` 要求 ≥ 22.23，用 22.22 会在构建期报奇怪的错，直接上 24。
+- **pnpm 版本告警**：本机 pnpm 12 会提示「无法使用项目锁定的 11.22.0」，不影响安装和构建；
+  想彻底消掉就 `corepack enable` 或用 `pnpm@11.22.0`。
