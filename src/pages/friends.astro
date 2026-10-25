@@ -1,393 +1,275 @@
 ---
-import BaseLayout from '@/layouts/BaseLayout.astro';
-import { themeConfig } from '@/config';
+import { getEntry, render } from "astro:content";
+import Comment from "@components/comment/index.astro";
+import Markdown from "@components/common/Markdown.astro";
+import { Icon } from "astro-icon/components";
+import {
+	commentConfig,
+	friendsPageConfig,
+	getEnabledFriends,
+	siteConfig,
+} from "@/config";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/pages/common.css";
+import "@/styles/pages/friends.css";
 
-const { self, links } = themeConfig.friends;
-const title = `友链 · ${themeConfig.site.title}`;
+// 检查页面是否启用
+if (!siteConfig.pages.friends) {
+	return Astro.redirect("/404/");
+}
 
-// 展示/复制给别人用的必须是完整地址，而 avatar 写的是 public 下的相对路径
-const selfAvatar = new URL(self.avatar!, themeConfig.site.website).href;
+const friendsPost = await getEntry("spec", "friends");
 
-// 无头像时用名字首字做占位（emoji 和汉字都按「一个字符」处理）
-const initial = (name: string) => [...name.trim()][0] ?? '?';
+if (!friendsPost) {
+	throw new Error("friends page content not found");
+}
+
+const { Content } = await render(friendsPost);
+
+// 检查评论系统是否启用
+const isCommentEnabled =
+	commentConfig?.type &&
+	commentConfig.type !== "none" &&
+	friendsPageConfig.showComment !== false;
+
+// 使用配置文件中的友链数据，按权重排序
+const items = getEnabledFriends();
+const allTags = [...new Set(items.flatMap((item) => item.tags || []))].sort();
+
+// 页面标题和描述
+const title = friendsPageConfig.title || i18n(I18nKey.friends);
+const description =
+	friendsPageConfig.description || i18n(I18nKey.friendsDescription);
 ---
 
-<BaseLayout title={title}>
-  <header class="page-hero">
-    <h1>友链</h1>
-    <p class="lead">一些常读的站点。想交换友链，去留言板留个地址就行。</p>
-  </header>
-
-  <section aria-labelledby="self-title">
-    <h2 class="section-title" id="self-title">本站</h2>
-    <div class="self-card">
-      <div class="profile">
-        <img class="avatar" src={self.avatar} alt="" width="64" height="64" loading="lazy" />
-        <div class="profile-text">
-          <p class="name">{self.name}</p>
-          <p class="desc">{self.description}</p>
-          <p class="url">{self.url}</p>
-          <button id="copy-info" class="copy" type="button">复制信息</button>
+<MainGridLayout title={title} description={description}>
+  <div
+    class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32"
+  >
+    <div class="card-base z-10 px-9 py-6 relative w-full">
+      <!-- 页面标题和描述 -->
+      <div class="mb-4">
+        <div class="page-heading">
+          <div class="page-icon" aria-hidden="true">
+            <Icon name="material-symbols:group" />
+          </div>
+          <div>
+            <h2>{title}</h2>
+            {description && <p>{description}</p>}
+          </div>
         </div>
       </div>
-      <dl class="info">
-        <dt>名称</dt><dd>{self.name}</dd>
-        <dt>地址</dt><dd>{self.url}</dd>
-        <dt>头像</dt><dd>{selfAvatar}</dd>
-        <dt>描述</dt><dd>{self.description}</dd>
-      </dl>
+
+      <!-- 搜索框 -->
+      {
+        items.length > 0 && (
+          <friend-filter class="mb-6">
+            <div class="relative mb-3">
+              <Icon
+                name="material-symbols:search"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 text-lg pointer-events-none"
+              />
+              <input
+                type="text"
+                data-search
+                placeholder={i18n(I18nKey.searchFriends) || "搜索友链..."}
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-(--line-divider) bg-transparent text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:border-(--primary) focus:ring-1 focus:ring-(--primary) outline-none transition-all duration-200 text-sm"
+              />
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                data-tag="all"
+                class="category-pill px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+                data-active
+              >
+                {i18n(I18nKey.all)}
+              </button>
+              {allTags.map((tag) => (
+                <button
+                  data-tag={tag}
+                  class="category-pill px-3 py-1.5 rounded-full text-sm font-medium transition-colors duration-200"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </friend-filter>
+        )
+      }
+
+      <div class="friends-grid my-4">
+        {
+          items.length === 0 && (
+            <div class="col-span-full flex flex-col items-center justify-center py-12 text-neutral-400 dark:text-neutral-500">
+              <Icon name="material-symbols:group-off-outline" class="text-4xl mb-3" />
+              <div class="text-sm">{i18n(I18nKey.friendsEmpty)}</div>
+            </div>
+          )
+        }
+        {
+          items.map((item) => (
+            <a
+              href={item.siteurl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-tags={item.tags?.join(",")}
+              class="friend-card group flex items-center gap-3 p-2.5 rounded-xl border border-(--line-divider) hover:border-(--primary) hover:bg-(--card-bg) transition-all duration-300 hover:shadow-lg relative overflow-hidden"
+            >
+              {/* 背景装饰 - 仅悬停显示 */}
+              <div class="absolute inset-0 bg-(--primary) opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none" />
+
+              {/* 外部链接图标 - 固定在卡片右上角 */}
+              <Icon
+                name="material-symbols:arrow-outward-rounded"
+                class="absolute top-3 right-3 text-(--primary) text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+              />
+
+              {/* 头像 */}
+              <div class="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-black/5 dark:border-white/5 group-hover:scale-105 transition-transform duration-300">
+                <img
+                  src={item.imgurl}
+                  alt={item.title}
+                  class="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* 内容 */}
+              <div class="grow min-w-0 flex flex-col justify-center gap-0.5">
+                <div class="font-bold text-base text-neutral-900 dark:text-neutral-100 group-hover:text-(--primary) transition-colors truncate pr-4">
+                  {item.title}
+                </div>
+
+                <div
+                  class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1"
+                  title={item.desc}
+                >
+                  {item.desc}
+                </div>
+
+                {/* 标签 */}
+                <div class="flex flex-wrap gap-1 mt-1">
+                  {item.tags && item.tags.length > 0
+                    ? item.tags
+                        .slice(0, 3)
+                        .map((tag) => (
+                          <span class="text-[0.65rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors duration-300">
+                            {tag}
+                          </span>
+                        ))
+                    : null}
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+
+      {/* 搜索无结果提示 */}
+      <div class="friends-empty hidden flex-col items-center justify-center py-12 text-neutral-400 dark:text-neutral-500">
+        <Icon name="material-symbols:search-off-rounded" class="text-4xl mb-3" />
+        <div class="text-sm">{i18n(I18nKey.searchNoResults)}</div>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <section aria-labelledby="friends-title">
-    <h2 class="section-title" id="friends-title">朋友们</h2>
-    {
-      links.length ? (
-        <ul class="friend-grid">
-          {links.map((friend) => (
-            <li>
-              <a class="friend-card" href={friend.url} target="_blank" rel="noopener noreferrer">
-                {/* 首字始终垫在底层，外链头像加载失败就移除自己，露出首字 */}
-                <span class="avatar-slot">
-                  <span class="placeholder" aria-hidden="true">{initial(friend.name)}</span>
-                  {friend.avatar && (
-                    <img
-                      class="avatar-img"
-                      src={friend.avatar}
-                      alt=""
-                      width="48"
-                      height="48"
-                      loading="lazy"
-                      onerror="this.remove()"
-                    />
-                  )}
-                </span>
-                <span class="meta">
-                  <span class="name">{friend.name}</span>
-                  {friend.description && <span class="desc">{friend.description}</span>}
-                </span>
-                <span class="go" aria-hidden="true">↗</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p class="empty">暂时还没有友链。</p>
-      )
+  {friendsPageConfig.showCustomContent !== false && (
+    <div class="mt-4 card-base z-10 px-9 py-6 relative w-full">
+      <Markdown class="">
+        <Content />
+      </Markdown>
+    </div>
+  )}
+
+  <!-- 评论区 -->
+  {isCommentEnabled && (
+    <div class="mt-4">
+      <Comment post={friendsPost} customPath="/friends/" />
+    </div>
+  )}
+
+  <script slot="head" is:inline>
+    if (!customElements.get("friend-filter")) {
+      class FriendFilter extends HTMLElement {
+        selectedTag = "all";
+
+        constructor() {
+          super();
+        }
+
+        connectedCallback() {
+          this.addEventListener("click", this.handleClick);
+          const input = this.querySelector("[data-search]");
+          if (input) {
+            input.addEventListener("input", () => this.applyFilters());
+          }
+        }
+
+        disconnectedCallback() {
+          this.removeEventListener("click", this.handleClick);
+        }
+
+        handleClick(e) {
+          const target = e.target;
+          const button = target.closest("button");
+          if (!button) return;
+
+          this.selectedTag = button.dataset.tag;
+          const filters = this.querySelectorAll("button");
+
+          filters.forEach((f) => {
+            f.removeAttribute("data-active");
+          });
+          button.setAttribute("data-active", "");
+
+          this.applyFilters();
+        }
+
+        applyFilters() {
+          const container = this.closest(".card-base");
+          if (!container) return;
+
+          const input = this.querySelector("[data-search]");
+          const query = (input?.value || "").toLowerCase().trim();
+          const cards = container.querySelectorAll(".friend-card");
+
+          let hasVisible = false;
+
+          cards.forEach((card) => {
+            const cardEl = card;
+            const tags = (cardEl.dataset.tags || "").split(",");
+            const name = (cardEl.querySelector(".font-bold")?.textContent || "").toLowerCase();
+            const desc = (cardEl.querySelector(".line-clamp-1")?.textContent || "").toLowerCase();
+
+            const tagMatch =
+              this.selectedTag === "all" ||
+              (this.selectedTag && tags.includes(this.selectedTag));
+            const searchMatch =
+              !query ||
+              name.includes(query) ||
+              desc.includes(query) ||
+              tags.some((t) => t.toLowerCase().includes(query));
+
+            if (tagMatch && searchMatch) {
+              cardEl.style.display = "";
+              cardEl.classList.add("animate-fade-in-up");
+              hasVisible = true;
+            } else {
+              cardEl.style.display = "none";
+              cardEl.classList.remove("animate-fade-in-up");
+            }
+          });
+
+          const emptyEl = container.querySelector(".friends-empty");
+          if (emptyEl) {
+            emptyEl.classList.toggle("hidden", hasVisible);
+            emptyEl.classList.toggle("flex", !hasVisible);
+          }
+        }
+      }
+      customElements.define("friend-filter", FriendFilter);
     }
-  </section>
+  </script>
 
-  <section class="comments" aria-label="友链评论">
-    <h2 class="section-title">留言交流</h2>
-    <script
-      src="https://giscus.app/client.js"
-      data-repo="dongyue12/giscus"
-      data-repo-id="R_kgDOSakHjA"
-      data-category="Announcements"
-      data-category-id="DIC_kwDOSakHjM4C8zJM"
-      data-mapping="pathname"
-      data-strict="0"
-      data-reactions-enabled="1"
-      data-emit-metadata="0"
-      data-input-position="bottom"
-      data-theme="preferred_color_scheme"
-      data-loading="lazy"
-      data-lang={themeConfig.site.language}
-      crossorigin="anonymous"
-      async
-      is:inline></script>
-  </section>
-</BaseLayout>
-
-<script is:inline>
-  (function () {
-    var btn = document.getElementById('copy-info');
-    if (!btn || !navigator.clipboard) return;
-    // 从服务端渲染好的 dd 里取原文，避免把信息在模板和脚本里各写一份
-    var v = document.querySelectorAll('.info dd');
-    var text =
-      'name: "' + v[0].textContent + '"\nurl: "' + v[1].textContent +
-      '"\nimg: "' + v[2].textContent + '"\ndesc: "' + v[3].textContent + '"';
-    var original = btn.textContent;
-
-    btn.addEventListener('click', function () {
-      navigator.clipboard.writeText(text).then(
-        function () {
-          btn.textContent = '已复制';
-          setTimeout(function () {
-            btn.textContent = original;
-          }, 1500);
-        },
-        function () {
-          btn.textContent = '复制失败';
-          setTimeout(function () {
-            btn.textContent = original;
-          }, 1500);
-        },
-      );
-    });
-  })();
-</script>
-
-<style>
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    margin: 0 0 1rem;
-    font-family: var(--mono);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    color: var(--ink-3);
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--line);
-  }
-
-  section + section {
-    margin-top: 3.5rem;
-  }
-
-  .comments {
-    margin-bottom: 2rem;
-  }
-
-  /* 本站信息：左边名片，右边一份可复制的完整字段 */
-  .self-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-    gap: 2rem;
-    padding: 1.6rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-xl);
-    background: var(--surface);
-  }
-
-  .profile {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .profile-text {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .profile-text p {
-    margin: 0;
-  }
-  .profile-text .name {
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
-
-  .profile-text .desc {
-    margin-top: 0.25rem;
-    color: var(--ink-2);
-    font-size: 0.9375rem;
-    line-height: 1.65;
-  }
-
-  .profile-text .url {
-    margin-top: 0.5rem;
-    font-family: var(--mono);
-    font-size: var(--text-xs);
-    color: var(--ink-3);
-    overflow-wrap: anywhere;
-  }
-
-  .avatar {
-    flex-shrink: 0;
-    width: 4rem;
-    height: 4rem;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: var(--paper-2);
-    box-shadow: 0 0 0 1px var(--line);
-  }
-
-  .copy {
-    margin-top: 0.9rem;
-    font: inherit;
-    font-size: var(--text-s);
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid transparent;
-    border-radius: var(--radius-pill);
-    padding: 0.35rem 0.85rem;
-    cursor: pointer;
-    transition:
-      border-color var(--dur) var(--ease),
-      background-color var(--dur) var(--ease);
-  }
-
-  .copy:hover {
-    border-color: var(--accent-line);
-  }
-
-  .info {
-    display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    align-content: start;
-    gap: 0.5rem 1rem;
-    margin: 0;
-    padding-left: 2rem;
-    border-left: 1px solid var(--line);
-    font-size: var(--text-s);
-    line-height: 1.6;
-  }
-
-  .info dt {
-    color: var(--ink-3);
-  }
-
-  .info dd {
-    margin: 0;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.01em;
-  }
-
-  /* 友链卡片：三列，悬停整块上浮 */
-  .friend-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .friend-card {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    height: 100%;
-    padding: 1rem 1.1rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-l);
-    background: var(--surface);
-    color: var(--ink);
-    text-decoration: none;
-    transition:
-      border-color var(--dur) var(--ease),
-      box-shadow var(--dur) var(--ease),
-      transform var(--dur) var(--ease);
-  }
-
-  .friend-card:hover {
-    border-color: var(--accent-line);
-    box-shadow: var(--shadow-m);
-    transform: translateY(-2px);
-  }
-
-  .go {
-    margin-left: auto;
-    flex: none;
-    font-size: 0.8125rem;
-    color: var(--ink-3);
-    transition:
-      color var(--dur) var(--ease),
-      transform var(--dur) var(--ease);
-  }
-
-  .friend-card:hover .go {
-    color: var(--accent);
-    transform: translate(2px, -2px);
-  }
-
-  /* 头像槽：首字占位在底层，外链图覆盖在上层，加载失败时自然露出首字 */
-  .avatar-slot {
-    position: relative;
-    flex-shrink: 0;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    overflow: hidden;
-    background-color: var(--paper-2);
-    box-shadow: 0 0 0 1px var(--line);
-  }
-
-  .avatar-slot .placeholder {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--ink-3);
-    font-size: var(--text-s);
-    user-select: none;
-  }
-
-  .avatar-img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .meta {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    line-height: 1.45;
-  }
-
-  .name,
-  .desc {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .name {
-    font-size: 0.9375rem;
-    font-weight: 500;
-  }
-
-  .desc {
-    color: var(--ink-2);
-    font-size: var(--text-s);
-  }
-
-  .empty {
-    color: var(--ink-2);
-    margin: 0;
-  }
-
-  @media (max-width: 1000px) {
-    .friend-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .self-card {
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-    }
-    .info {
-      padding-left: 0;
-      border-left: 0;
-      padding-top: 1.25rem;
-      border-top: 1px solid var(--line);
-      grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem minmax(0, 1fr);
-    }
-  }
-
-  @media (max-width: 640px) {
-    .friend-grid {
-      grid-template-columns: 1fr;
-    }
-    .info {
-      grid-template-columns: 3.5rem minmax(0, 1fr);
-    }
-  }
-</style>
+</MainGridLayout>

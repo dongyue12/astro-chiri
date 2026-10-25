@@ -1,99 +1,96 @@
 ---
-import { getCollection } from 'astro:content';
-import BaseLayout from '@/layouts/BaseLayout.astro';
-import { getTagName, themeConfig } from '@/config';
+import { Icon } from "astro-icon/components";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { getTagList } from "@/utils/content-utils";
+import { getTagUrl } from "@/utils/url-utils";
 
-const posts = await getCollection('blog');
-const counts = new Map<string, number>();
-for (const post of posts) {
-  for (const tag of post.data.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
-}
+const tags = await getTagList();
 
-// 用得多的排前面，数量相同的按显示名排，保证每次构建顺序一致
-const rows = [...counts.entries()]
-  .map(([id, count]) => ({ id, name: getTagName(id), count }))
-  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'));
+// Top 10 标签排行
+const topTags = [...tags].sort((a, b) => b.count - a.count).slice(0, 10);
+const topMaxCount = topTags.length > 0 ? topTags[0].count : 1;
 ---
 
-<BaseLayout title={`标签 · ${themeConfig.site.title}`}>
-  <header class="page-hero">
-    <h1>标签</h1>
-    <p class="lead">
-      {posts.length} 篇文章，{rows.length} 个标签。标签比分类更具体，适合顺着一类问题往下读。
-    </p>
-  </header>
+<MainGridLayout title={i18n(I18nKey.tags)} description={i18n(I18nKey.allTags)}>
+    <!-- 页面标题 -->
+    <div class="card-base px-8 py-6 mb-4">
+        <div class="text-2xl font-bold text-(--primary) mb-2">
+            {i18n(I18nKey.tags)}
+        </div>
+        <p class="text-30 text-sm">
+            {i18n(I18nKey.allTags)} · {tags.length} {i18n(I18nKey.tagsCount)}
+        </p>
+    </div>
 
-  <ul class="tag-cloud">
+    <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
+        <div class="card-base z-10 px-9 py-6 relative w-full">
+            <div class="flex flex-wrap gap-2.5">
+                {tags.map((t) => (
+                    <a href={getTagUrl(t.name)}
+                       class="tag-item group inline-flex items-center gap-1.5
+                              text-sm font-medium px-3 py-1.5 transition-all duration-200"
+                    >
+                        <span>
+                            {t.name.trim()}
+                        </span>
+                        <span class="tag-count-badge text-xs font-bold px-1.5
+                                     min-w-[1.5rem] text-center">
+                            {t.count}
+                        </span>
+                    </a>
+                ))}
+            </div>
+        </div>
+    </div>
+
+    <!-- 空状态 -->
     {
-      rows.map((tag) => (
-        <li>
-          <a class="tag-pill" href={`/tags/${tag.id}/`} data-count={tag.count}>
-            {tag.name}
-            <span class="tag-count">{tag.count}</span>
-          </a>
-        </li>
-      ))
+        tags.length === 0 && (
+            <div class="card-base px-8 py-12 text-center">
+                <Icon
+                    name="material-symbols:tag-rounded"
+                    class="text-5xl text-30 mx-auto mb-4"
+                />
+                <p class="text-30">{i18n(I18nKey.noData)}</p>
+            </div>
+        )
     }
-  </ul>
-</BaseLayout>
 
-<style>
-  .tag-cloud {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
-    max-width: 60rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .tag-pill {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.45rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-pill);
-    background: var(--surface);
-    color: var(--ink);
-    font-size: 0.9375rem;
-    line-height: 1.4;
-    text-decoration: none;
-    transition:
-      border-color var(--dur) var(--ease),
-      color var(--dur) var(--ease),
-      transform var(--dur) var(--ease);
-  }
-
-  .tag-pill:hover {
-    color: var(--accent);
-    border-color: var(--accent-line);
-    transform: translateY(-2px);
-  }
-
-  /* 用得少的标签收小一号，云团自然有主次，不用再分组 */
-  .tag-pill[data-count='1'] {
-    padding: 0.38rem 0.8rem;
-    font-size: 0.875rem;
-    color: var(--ink-2);
-  }
-
-  .tag-count {
-    font-family: var(--mono);
-    font-size: 0.6875rem;
-    color: var(--ink-3);
-    font-variant-numeric: tabular-nums;
-    transition: color var(--dur) var(--ease);
-  }
-
-  /* 用间隔点把标签名和计数分开，否则「Windows」和「11」会读成一个词 */
-  .tag-count::before {
-    content: '·';
-    margin-right: 0.35em;
-  }
-
-  .tag-pill:hover .tag-count {
-    color: var(--accent);
-  }
-</style>
+    <!-- Top 10 标签排行 -->
+    {topTags.length > 0 && (
+        <div class="card-base px-8 py-6 mt-4">
+            <h2 class="text-lg font-bold text-75 mb-4">
+                Top 10
+            </h2>
+            <div class="flex flex-col gap-3">
+                {topTags.map((t, i) => (
+                    <a href={getTagUrl(t.name)}
+                       class="flex items-center gap-3 group hover:bg-(--btn-card-bg-hover) rounded-lg px-3 py-2 -mx-3 transition-colors"
+                    >
+                        <span class="text-sm font-bold text-(--primary) w-5 text-right shrink-0">
+                            {i + 1}
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-medium text-50 truncate group-hover:text-(--primary) transition-colors">
+                                    #{t.name.trim()}
+                                </span>
+                                <span class="text-xs text-(--primary) ml-2 shrink-0">
+                                    {t.count} {i18n(I18nKey.postsCount)}
+                                </span>
+                            </div>
+                            <div class="h-2 rounded-full bg-(--primary)/10 overflow-hidden">
+                                <div
+                                    class="h-full rounded-full bg-(--primary) transition-all duration-500"
+                                    style={`width: ${(t.count / topMaxCount) * 100}%`}
+                                />
+                            </div>
+                        </div>
+                    </a>
+                ))}
+            </div>
+        </div>
+    )}
+</MainGridLayout>

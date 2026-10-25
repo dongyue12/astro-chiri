@@ -1,33 +1,143 @@
-import { defineCollection } from 'astro:content';
-import { glob } from 'astro/loaders';
-import { z } from 'astro/zod';
-import { categoryIds } from './config';
+import { defineCollection } from "astro:content";
+import type { CollectionConfig } from "astro/content/config";
+import { glob } from "astro/loaders";
+import { type ZodType, z } from "astro/zod";
 
-const blog = defineCollection({
-  // 文章清单：blog/ 下的 Markdown。
-  //
-  // - 文章的 id 取文件名开头的数字，同时决定 URL：`3.zoxide.md` → `/3/`。
-  // - 待处理文章/ 是草稿暂存区，显式排除：既不会发布，也不走下面的 frontmatter 校验，
-  //   所以可以直接丢 Obsidian 导出的原始稿。详见 blog/待处理文章/格式说明.md
-  // - 空文件不能留在 blog/ 下。Obsidian 里新建的稿子常常是 0 字节，而空文件一样会进
-  //   schema 校验，缺 title 就直接让整个构建失败；这种文件请放进 待处理文章/。
-  loader: glob({
-    base: './blog',
-    pattern: ['**/*.md', '!**/待处理文章/**'],
-    generateId: ({ entry }) =>
-      entry.match(/^(\d+)/)?.[1] ??
-      entry.replace(/\.md$/i, '').toLowerCase().replace(/\s+/g, '-'),
-  }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string().optional(),
-    pubDate: z.coerce.date(),
-    updatedDate: z.coerce.date().optional(),
-    // 分类与标签：category 只能取 config.ts 里登记的 id，写错在构建时就报错；
-    // tags 留成任意字符串（id），遇到没登记的标签页面上回落到 id 本身。
-    category: z.enum(categoryIds).default('misc'),
-    tags: z.array(z.string()).default([]),
-  }),
+type PostData = {
+	title: string;
+	published: Date;
+	updated?: Date;
+	draft: boolean;
+	description: string;
+	image: string;
+	tags: string[];
+	category: string | null;
+	lang: string;
+	pinned: boolean;
+	author: string;
+	sourceLink: string;
+	licenseName: string;
+	licenseUrl: string;
+	comment: boolean;
+	password: string;
+	passwordHint: string;
+	series: string;
+	seriesOrder?: number;
+	prevTitle: string;
+	prevSlug: string;
+	nextTitle: string;
+	nextSlug: string;
+};
+
+type DynamicData = {
+	published: Date;
+	pinned: boolean;
+	location: string;
+};
+
+type ProjectLink = {
+	label: string;
+	icon: string;
+	value: string;
+};
+
+type ProjectData = {
+	title: string;
+	published: Date;
+	draft: boolean;
+	order?: number;
+	description: string;
+	image: string;
+	tags: string[];
+	link: ProjectLink[];
+	status: string;
+	lang: string;
+};
+
+type ContentCollection<T> = CollectionConfig<
+	ZodType<T>,
+	ReturnType<typeof glob>
+>;
+
+const postsCollection: ContentCollection<PostData> = defineCollection({
+	loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/posts" }),
+	schema: z.object({
+		title: z.string(),
+		published: z.date(),
+		updated: z.date().optional(),
+		draft: z.boolean().optional().default(false),
+		description: z.string().optional().default(""),
+		image: z.string().optional().default(""),
+		tags: z.array(z.string()).optional().default([]),
+		category: z.string().optional().nullable().default(""),
+		lang: z.string().optional().default(""),
+		pinned: z.boolean().optional().default(false),
+		author: z.string().optional().default(""),
+		sourceLink: z.string().optional().default(""),
+		licenseName: z.string().optional().default(""),
+		licenseUrl: z.string().optional().default(""),
+		comment: z.boolean().optional().default(true),
+		password: z.string().optional().default(""),
+		passwordHint: z.string().optional().default(""),
+		series: z.string().optional().default(""),
+		seriesOrder: z.number().optional(),
+
+		/* For internal use */
+		prevTitle: z.string().default(""),
+		prevSlug: z.string().default(""),
+		nextTitle: z.string().default(""),
+		nextSlug: z.string().default(""),
+	}),
 });
 
-export const collections = { blog };
+const specCollection: ContentCollection<Record<string, never>> =
+	defineCollection({
+		loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/spec" }),
+		schema: z.object({}),
+	});
+
+const dynamicCollection: ContentCollection<DynamicData> = defineCollection({
+	loader: glob({ pattern: "**/*.md", base: "./src/content/dynamic" }),
+	schema: z.object({
+		published: z.date(),
+		pinned: z.boolean().optional().default(false),
+		location: z.string().optional().default(""),
+	}),
+});
+
+const projectsCollection: ContentCollection<ProjectData> = defineCollection({
+	loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/projects" }),
+	schema: z.object({
+		title: z.string(),
+		published: z.date(),
+		draft: z.boolean().optional().default(false),
+		order: z.number().optional(),
+		description: z.string().optional().default(""),
+		image: z.string().optional().default(""),
+		tags: z.array(z.string()).optional().default([]),
+		link: z
+			.array(
+				z.object({
+					label: z.string(),
+					icon: z.string().optional().default(""),
+					value: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
+		status: z.string().optional().default(""),
+		lang: z.string().optional().default(""),
+	}),
+});
+
+export const collections: {
+	dynamic: typeof dynamicCollection;
+	posts: typeof postsCollection;
+	spec: typeof specCollection;
+	projects: typeof projectsCollection;
+} = {
+	dynamic: dynamicCollection,
+	posts: postsCollection,
+	spec: specCollection,
+	projects: projectsCollection,
+};
