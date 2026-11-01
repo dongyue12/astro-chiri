@@ -10,6 +10,9 @@ audit/
 # wrangler / Cloudflare 本地状态
 .wrangler/
 
+# vercel 本地状态
+.vercel/
+
 # generated types
 .astro/
 

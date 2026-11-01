@@ -1,0 +1,67 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "astro",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "trailingSlash": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    },
+    {
+      "source": "/_astro/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/pagefind/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    }
+  ],
+  "redirects": [
+    { "source": "/1/", "destination": "/posts/1/", "permanent": true },
+    { "source": "/2/", "destination": "/posts/2/", "permanent": true },
+    { "source": "/3/", "destination": "/posts/3/", "permanent": true },
+    { "source": "/4/", "destination": "/posts/4/", "permanent": true },
+    { "source": "/5/", "destination": "/posts/5/", "permanent": true },
+    { "source": "/6/", "destination": "/posts/6/", "permanent": true },
+    { "source": "/7/", "destination": "/posts/7/", "permanent": true },
+    { "source": "/8/", "destination": "/posts/8/", "permanent": true },
+    { "source": "/9/", "destination": "/posts/9/", "permanent": true },
+    { "source": "/10/", "destination": "/posts/10/", "permanent": true },
+    { "source": "/11/", "destination": "/posts/11/", "permanent": true },
+    { "source": "/12/", "destination": "/posts/12/", "permanent": true },
+    { "source": "/13/", "destination": "/posts/13/", "permanent": true },
+    { "source": "/14/", "destination": "/posts/14/", "permanent": true },
+    { "source": "/15/", "destination": "/posts/15/", "permanent": true },
+    { "source": "/16/", "destination": "/posts/16/", "permanent": true },
+    { "source": "/17/", "destination": "/posts/17/", "permanent": true },
+    { "source": "/18/", "destination": "/posts/18/", "permanent": true },
+    { "source": "/19/", "destination": "/posts/19/", "permanent": true },
+    { "source": "/20/", "destination": "/posts/20/", "permanent": true },
+    { "source": "/21/", "destination": "/posts/21/", "permanent": true },
+    { "source": "/22/", "destination": "/posts/22/", "permanent": true },
+    { "source": "/23/", "destination": "/posts/23/", "permanent": true },
+    { "source": "/24/", "destination": "/posts/24/", "permanent": true },
+    { "source": "/25/", "destination": "/posts/25/", "permanent": true },
+    { "source": "/26/", "destination": "/posts/26/", "permanent": true },
+    { "source": "/message/", "destination": "/guestbook/", "permanent": true },
+    { "source": "/categories/dev/", "destination": "/categories/", "permanent": true },
+    { "source": "/categories/system/", "destination": "/categories/", "permanent": true },
+    { "source": "/categories/misc/", "destination": "/categories/", "permanent": true }
+  ]
+}
