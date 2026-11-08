@@ -15,9 +15,23 @@ async function getRawSortedPosts() {
 		if (!a.data.pinned && b.data.pinned) return 1;
 
 		// 如果置顶状态相同，则按发布日期排序
-		const dateA = new Date(a.data.published);
-		const dateB = new Date(b.data.published);
-		return dateA > dateB ? -1 : 1;
+		const dateDiff =
+			new Date(b.data.published).getTime() -
+			new Date(a.data.published).getTime();
+		if (dateDiff !== 0) return dateDiff;
+
+		// 同一天发布时必须给出确定顺序，否则比较器不自洽（两个方向都返回 1），
+		// 列表顺序会随环境变化。同一系列内按 seriesOrder 倒序（较新的期数排在上面），
+		// 其余情况按标题兜底，保证结果稳定可复现。
+		const ao = a.data.seriesOrder;
+		const bo = b.data.seriesOrder;
+		const sameSeries =
+			!!a.data.series &&
+			a.data.series.trim() === (b.data.series ?? "").trim();
+		if (sameSeries && ao !== undefined && bo !== undefined && ao !== bo) {
+			return bo - ao;
+		}
+		return a.data.title.localeCompare(b.data.title, "zh-CN");
 	});
 	return sorted;
 }
