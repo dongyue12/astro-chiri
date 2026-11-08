@@ -4,7 +4,7 @@ import "@/styles/pages/image-tool.css";
 
 const title = "图片处理";
 const description =
-	"在线做图片格式转换、缩放、旋转翻转与亮度调整，支持批量导出。全部在浏览器本地完成，图片不会上传。";
+	"在线做图片格式转换、缩放、裁剪、圆角、旋转翻转与亮度调整，逐张编辑、批量导出。全部在浏览器本地完成，图片不会上传。";
 ---
 
 <!DOCTYPE html>
@@ -36,7 +36,7 @@ const description =
 
     <main class="tool-main">
       <div class="img-app">
-        <!-- 左：上传与列表 -->
+        <!-- 左：预览 + 缩略图 -->
         <section class="img-main">
           <div class="img-drop" id="img-drop" role="button" tabindex="0">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -50,11 +50,26 @@ const description =
           </div>
           <input id="img-input" type="file" accept="image/*" multiple hidden />
 
-          <div class="img-list" id="img-list"></div>
+          <!-- 主预览：当前正在编辑的那张 -->
+          <div class="img-stage" id="img-stage" hidden>
+            <div class="img-stage-bar">
+              <span class="stage-name" id="stage-name"></span>
+              <span class="stage-meta" id="stage-meta"></span>
+              <button class="stage-btn" type="button" id="btn-crop-one">裁剪</button>
+              <button class="stage-btn" type="button" id="btn-save-one">
+                下载这张
+              </button>
+            </div>
+            <canvas class="img-preview" id="img-preview"></canvas>
+          </div>
+
+          <!-- 缩略图条：其余图片都在这里 -->
+          <div class="img-strip" id="img-strip" hidden></div>
         </section>
 
-        <!-- 右：设置面板 -->
-        <aside class="img-panel">
+        <!-- 右：设置面板（作用于当前这张）-->
+        <aside class="img-panel" id="img-panel" data-empty="1">
+          <div class="panel-scroll">
           <div class="panel-section">
             <div class="panel-title">
               <span>输出格式</span>
@@ -93,7 +108,7 @@ const description =
               />
             </div>
             <div class="panel-note" id="quality-note">
-              JPEG / WebP 有效，PNG 为无损
+              数值越低体积越小，PNG 为无损
             </div>
           </div>
 
@@ -113,6 +128,26 @@ const description =
               <span class="num-suffix">px</span>
             </div>
             <div class="panel-note">高度按原比例自动计算，旋转后自动互换</div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>裁剪比例</span>
+              <span class="panel-val" id="val-crop">原比例</span>
+            </div>
+            <div class="seg seg-wrap" id="seg-crop">
+              <button type="button" data-ratio="original" aria-pressed="true">
+                原比例
+              </button>
+              <button type="button" data-ratio="1:1" aria-pressed="false">1:1</button>
+              <button type="button" data-ratio="4:3" aria-pressed="false">4:3</button>
+              <button type="button" data-ratio="3:4" aria-pressed="false">3:4</button>
+              <button type="button" data-ratio="16:9" aria-pressed="false">16:9</button>
+              <button type="button" data-ratio="9:16" aria-pressed="false">9:16</button>
+            </div>
+            <div class="panel-note">
+              自动从中心裁切；要手动框选点上方「裁剪」按钮，手动裁剪优先
+            </div>
           </div>
 
           <div class="panel-section">
@@ -171,32 +206,81 @@ const description =
             </div>
           </div>
 
-          <div class="panel-actions">
-            <button class="act-btn act-btn-primary" type="button" id="btn-export-all" disabled>
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 15.575q-.2 0-.375-.062-.175-.063-.325-.213L7.4 11.4l1.4-1.4 2.2 2.2V4h2v8.2l2.2-2.2 1.4 1.4-3.9 3.9q-.15.15-.325.213-.175.062-.375.062ZM5 20q-.825 0-1.412-.587Q3 18.825 3 18v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 20 19 20H5Z"></path>
-              </svg>
-              下载全部
-            </button>
-            <button class="act-btn act-btn-ghost" type="button" id="btn-reset">
-              重置设置
-            </button>
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>圆角</span>
+              <span class="panel-val" id="val-radius">0%</span>
+            </div>
+            <div class="slider-row">
+              <input type="range" id="in-radius" min="0" max="50" value="0" aria-label="圆角半径" />
+            </div>
+            <div class="panel-note">
+              按短边百分比计算，50% 为完全圆角；要透明边角请导出 PNG / WebP
+            </div>
           </div>
-          <div class="panel-status" id="status">还没有添加图片</div>
+
+          </div>
+
+          <div class="panel-actions">
+            <button class="act-btn act-btn-primary" type="button" id="btn-export-edited" disabled>
+              下载修改的
+            </button>
+            <div class="act-row">
+              <button class="act-btn act-btn-ghost" type="button" id="btn-export-all" disabled>
+                全部下载
+              </button>
+              <button class="act-btn act-btn-ghost" type="button" id="btn-reset">
+                重置这张
+              </button>
+            </div>
+            <button class="act-btn act-btn-ghost" type="button" id="btn-apply-all">
+              把当前设置应用到全部
+            </button>
+            <div class="panel-status" id="status">还没有添加图片</div>
+          </div>
         </aside>
       </div>
     </main>
 
-    <footer class="tool-foot">
-      格式转换 · 缩放 · 旋转翻转 · 亮度对比度 · 批量导出
-    </footer>
-
     <script>
       const ICON_X = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19Z"/></svg>`;
 
-      const EXT = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif" };
+      const EXT = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/webp": "webp",
+        "image/gif": "gif",
+        "image/avif": "avif",
+      };
 
-      const DEFAULTS = {
+      const FORMAT_LABEL = {
+        original: "原格式",
+        webp: "WebP",
+        jpeg: "JPEG",
+        png: "PNG",
+      };
+
+      // 裁剪比例：null 表示不裁
+      const RATIOS = {
+        original: null,
+        "1:1": 1,
+        "4:3": 4 / 3,
+        "3:4": 3 / 4,
+        "16:9": 16 / 9,
+        "9:16": 9 / 16,
+      };
+
+      const RATIO_LABEL = {
+        original: "原比例",
+        "1:1": "1:1",
+        "4:3": "4:3",
+        "3:4": "3:4",
+        "16:9": "16:9",
+        "9:16": "9:16",
+      };
+
+      // 每张图各自的编辑参数
+      const EDIT_DEFAULTS = {
         format: "original",
         quality: 85,
         width: null,
@@ -206,29 +290,68 @@ const description =
         brightness: 100,
         contrast: 100,
         saturate: 100,
+        cropRatio: "original",
+        radius: 0,
       };
 
-      const state = { ...DEFAULTS, items: [], seq: 0 };
+      const state = { items: [], seq: 0, activeId: null };
 
       const drop = document.getElementById("img-drop");
       const input = document.getElementById("img-input");
-      const listEl = document.getElementById("img-list");
+      const stripEl = document.getElementById("img-strip");
+      const stageEl = document.getElementById("img-stage");
+      const previewEl = document.getElementById("img-preview");
+      const panelEl = document.getElementById("img-panel");
       const statusEl = document.getElementById("status");
-      const exportBtn = document.getElementById("btn-export-all");
+      const btnExportEdited = document.getElementById("btn-export-edited");
+      const btnExportAll = document.getElementById("btn-export-all");
 
-      // ── 基础绘制 ──────────────────────────────────────
+      const itemOf = (id) => state.items.find((i) => i.id === id) || null;
+      const activeItem = () => itemOf(state.activeId);
+
+      // ── 尺寸与绘制 ────────────────────────────────────
+
+      // 某张图在“原始像素坐标系”下要取的区域
+      function cropRect(item) {
+        const w0 = item.w0;
+        const h0 = item.h0;
+        // 手动裁剪（归一化坐标）优先于全局比例
+        if (item.crop) {
+          return {
+            x: item.crop.x * w0,
+            y: item.crop.y * h0,
+            w: Math.max(1, item.crop.w * w0),
+            h: Math.max(1, item.crop.h * h0),
+          };
+        }
+        const r = RATIOS[item.edit.cropRatio];
+        if (!r) return { x: 0, y: 0, w: w0, h: h0 };
+        const cur = w0 / h0;
+        let cw;
+        let ch;
+        if (cur > r) {
+          ch = h0;
+          cw = h0 * r;
+        } else {
+          cw = w0;
+          ch = w0 / r;
+        }
+        return { x: (w0 - cw) / 2, y: (h0 - ch) / 2, w: cw, h: ch };
+      }
 
       function outSize(item) {
-        let w = item.w0;
-        let h = item.h0;
-        if (state.width && state.width > 0) {
-          const k = state.width / w;
-          w = state.width;
+        const c = cropRect(item);
+        const e = item.edit;
+        let w = c.w;
+        let h = c.h;
+        if (e.width && e.width > 0) {
+          const k = e.width / w;
+          w = e.width;
           h = h * k;
         }
         w = Math.max(1, Math.round(w));
         h = Math.max(1, Math.round(h));
-        if (state.rotate % 180 !== 0) {
+        if (e.rotate % 180 !== 0) {
           const t = w;
           w = h;
           h = t;
@@ -236,7 +359,22 @@ const description =
         return { w, h };
       }
 
+      function roundRectPath(ctx, x, y, w, h, r) {
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.moveTo(x + rr, y);
+        ctx.lineTo(x + w - rr, y);
+        ctx.arcTo(x + w, y, x + w, y + rr, rr);
+        ctx.lineTo(x + w, y + h - rr);
+        ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+        ctx.lineTo(x + rr, y + h);
+        ctx.arcTo(x, y + h, x, y + h - rr, rr);
+        ctx.lineTo(x, y + rr);
+        ctx.arcTo(x, y, x + rr, y, rr);
+        ctx.closePath();
+      }
+
       function drawItem(canvas, item, maxEdge) {
+        const e = item.edit;
         const { w, h } = outSize(item);
         const s = maxEdge ? Math.min(1, maxEdge / Math.max(w, h)) : 1;
         const cw = Math.max(1, Math.round(w * s));
@@ -246,98 +384,260 @@ const description =
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, cw, ch);
 
-        const rotated = state.rotate % 180 !== 0;
+        // 圆角：先裁剪路径，再画内容
+        const radius = e.radius > 0 ? (Math.min(cw, ch) * e.radius) / 100 : 0;
+        if (radius > 0) {
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(0, 0, cw, ch, radius);
+          } else {
+            roundRectPath(ctx, 0, 0, cw, ch, radius);
+          }
+          ctx.clip();
+        }
+
+        const rotated = e.rotate % 180 !== 0;
         const bw = rotated ? ch : cw;
         const bh = rotated ? cw : ch;
+        const src = cropRect(item);
 
         ctx.save();
-        ctx.filter = `brightness(${state.brightness}%) contrast(${state.contrast}%) saturate(${state.saturate}%)`;
+        ctx.filter = `brightness(${e.brightness}%) contrast(${e.contrast}%) saturate(${e.saturate}%)`;
         ctx.translate(cw / 2, ch / 2);
-        ctx.rotate((state.rotate * Math.PI) / 180);
-        ctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
-        ctx.drawImage(item.bitmap, -bw / 2, -bh / 2, bw, bh);
+        ctx.rotate((e.rotate * Math.PI) / 180);
+        ctx.scale(e.flipH ? -1 : 1, e.flipV ? -1 : 1);
+        ctx.drawImage(item.bitmap, src.x, src.y, src.w, src.h, -bw / 2, -bh / 2, bw, bh);
         ctx.restore();
       }
 
       function mimeOf(item) {
-        if (state.format === "original") {
+        const f = item.edit.format;
+        if (f === "original") {
           if (item.mime === "image/png" || item.mime === "image/webp") {
             return item.mime;
           }
           return "image/jpeg";
         }
-        return "image/" + state.format;
+        return "image/" + f;
       }
 
-      // ── 列表渲染 ──────────────────────────────────────
+      // ── 状态判断 ──────────────────────────────────────
 
-      function updateCardMeta(item) {
-        const orig = item.el.querySelector(".d-orig");
-        const out = item.el.querySelector(".d-out");
+      function isEdited(item) {
+        if (item.crop) return true;
+        for (const k in EDIT_DEFAULTS) {
+          if (item.edit[k] !== EDIT_DEFAULTS[k]) return true;
+        }
+        return false;
+      }
+
+      // ── 界面刷新 ──────────────────────────────────────
+
+      function syncStripState() {
+        for (const el of stripEl.querySelectorAll(".img-thumb")) {
+          const it = itemOf(el.dataset.id);
+          el.classList.toggle("is-active", el.dataset.id === state.activeId);
+          el.classList.toggle("is-edited", it ? isEdited(it) : false);
+        }
+      }
+
+      function syncActions() {
+        const total = state.items.length;
+        const edited = state.items.filter(isEdited).length;
+        btnExportEdited.disabled = edited === 0;
+        btnExportAll.disabled = total === 0;
+        btnExportEdited.textContent = edited
+          ? `下载修改的 (${edited})`
+          : "下载修改的";
+        if (total) {
+          statusEl.textContent = `共 ${total} 张，已修改 ${edited} 张`;
+        } else {
+          statusEl.textContent = "还没有添加图片";
+        }
+      }
+
+      function drawPreview() {
+        const item = activeItem();
+        if (!item) return;
+        drawItem(previewEl, item, 1400);
         const o = outSize(item);
         const ext = EXT[mimeOf(item)] || "png";
-        if (orig) orig.textContent = `${item.w0}×${item.h0} → `;
-        if (out) out.textContent = `${o.w}×${o.h} · ${ext}`;
+        document.getElementById("stage-name").textContent = item.name;
+        document.getElementById("stage-meta").textContent =
+          `${item.w0}×${item.h0} → ${o.w}×${o.h} · ${ext}`;
       }
 
-      function renderItem(item) {
-        const card = document.createElement("div");
-        card.className = "img-card";
-        card.dataset.id = item.id;
+      function drawThumbs() {
+        for (const item of state.items) {
+          if (item.thumb) drawItem(item.thumb, item, 160);
+        }
+      }
 
-        const canvas = document.createElement("canvas");
-        canvas.className = "img-thumb";
-        canvas.title = "点击查看大图";
-
-        const meta = document.createElement("div");
-        meta.className = "img-meta";
-        const name = document.createElement("div");
-        name.className = "img-name";
-        name.textContent = item.name;
-        name.title = item.name;
-        const dim = document.createElement("div");
-        dim.className = "img-dim";
-        // 拆成两段：窄屏只保留输出尺寸与格式，避免被省略号截断
-        const orig = document.createElement("span");
-        orig.className = "d-orig";
-        const out = document.createElement("span");
-        out.className = "d-out";
-        dim.append(orig, out);
-        meta.append(name, dim);
-
-        const del = document.createElement("button");
-        del.className = "img-del";
-        del.type = "button";
-        del.setAttribute("aria-label", "移除这张图片");
-        del.innerHTML = ICON_X;
-
-        card.append(canvas, meta, del);
-        item.el = card;
-        item.canvas = canvas;
-
-        drawItem(canvas, item, 300);
-        updateCardMeta(item);
-        return card;
+      function syncLayout() {
+        const has = state.items.length > 0;
+        stageEl.hidden = !has;
+        stripEl.hidden = !has;
+        drop.hidden = has;
+        panelEl.dataset.empty = has ? "0" : "1";
       }
 
       let rafId = 0;
-      function redrawAll() {
-        if (!state.items.length) {
-          exportBtn.disabled = true;
-          statusEl.textContent = "还没有添加图片";
-          return;
-        }
-        for (const item of state.items) {
-          if (item.canvas) drawItem(item.canvas, item, 300);
-          updateCardMeta(item);
-        }
-        exportBtn.disabled = false;
-        statusEl.textContent = `共 ${state.items.length} 张图片`;
-      }
-
       function scheduleRedraw() {
         cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(redrawAll);
+        rafId = requestAnimationFrame(() => {
+          drawThumbs();
+          drawPreview();
+          syncStripState();
+          syncActions();
+          syncWidthLabel();
+        });
+      }
+
+      // ── 面板与当前图同步 ──────────────────────────────
+
+      function syncWidthLabel() {
+        const el = document.getElementById("val-width");
+        const item = activeItem();
+        if (!item || !item.edit.width) {
+          el.textContent = "原始";
+          return;
+        }
+        const o = outSize(item);
+        el.textContent = `${o.w} × ${o.h}`;
+      }
+
+      function syncPanel() {
+        const item = activeItem();
+        const e = item ? item.edit : EDIT_DEFAULTS;
+
+        for (const btn of document.querySelectorAll("#seg-format button")) {
+          btn.setAttribute("aria-pressed", String(btn.dataset.format === e.format));
+        }
+        document.getElementById("val-format").textContent =
+          FORMAT_LABEL[e.format] || "原格式";
+
+        const lossy = e.format !== "png";
+        const qInput = document.getElementById("in-quality");
+        qInput.disabled = !lossy;
+        qInput.value = String(e.quality);
+        document.getElementById("val-quality").textContent = `${e.quality}%`;
+        document.getElementById("quality-section").style.opacity = lossy ? "1" : "0.55";
+        document.getElementById("quality-note").textContent = lossy
+          ? "数值越低体积越小"
+          : "PNG 为无损格式，忽略质量";
+
+        document.getElementById("in-width").value = e.width ? String(e.width) : "";
+
+        for (const btn of document.querySelectorAll("#seg-crop button")) {
+          btn.setAttribute("aria-pressed", String(btn.dataset.ratio === e.cropRatio));
+        }
+        document.getElementById("val-crop").textContent =
+          RATIO_LABEL[e.cropRatio] || "原比例";
+
+        document.getElementById("btn-flip-h").setAttribute("aria-pressed", String(e.flipH));
+        document.getElementById("btn-flip-v").setAttribute("aria-pressed", String(e.flipV));
+
+        for (const [id, key, outId] of [
+          ["in-bright", "brightness", "val-bright"],
+          ["in-contrast", "contrast", "val-contrast"],
+          ["in-saturate", "saturate", "val-saturate"],
+          ["in-radius", "radius", "val-radius"],
+        ]) {
+          document.getElementById(id).value = String(e[key]);
+          document.getElementById(outId).textContent = `${e[key]}%`;
+        }
+
+        syncWidthLabel();
+      }
+
+      function applyEdit(patch) {
+        const item = activeItem();
+        if (!item) return;
+        Object.assign(item.edit, patch);
+        scheduleRedraw();
+      }
+
+      // ── 缩略图条 ──────────────────────────────────────
+
+      function renderStrip() {
+        stripEl.innerHTML = "";
+        for (const item of state.items) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "img-thumb";
+          b.dataset.id = item.id;
+          b.title = item.name;
+
+          const c = document.createElement("canvas");
+          b.appendChild(c);
+
+          const del = document.createElement("span");
+          del.className = "img-thumb-del";
+          del.setAttribute("role", "button");
+          del.setAttribute("aria-label", "移除这张");
+          del.innerHTML = ICON_X;
+          b.appendChild(del);
+
+          item.thumb = c;
+          stripEl.appendChild(b);
+        }
+
+        const add = document.createElement("button");
+        add.type = "button";
+        add.className = "img-thumb-add";
+        add.title = "添加图片";
+        add.setAttribute("aria-label", "添加图片");
+        add.textContent = "+";
+        add.addEventListener("click", () => input.click());
+        stripEl.appendChild(add);
+
+        syncStripState();
+      }
+
+      function scrollStripToActive() {
+        const el = stripEl.querySelector(".img-thumb.is-active");
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const sr = stripEl.getBoundingClientRect();
+        if (r.left < sr.left) {
+          stripEl.scrollLeft -= sr.left - r.left + 10;
+        } else if (r.right > sr.right) {
+          stripEl.scrollLeft += r.right - sr.right + 10;
+        }
+      }
+
+      function setActive(id) {
+        state.activeId = id;
+        syncStripState();
+        syncPanel();
+        drawPreview();
+        scrollStripToActive();
+      }
+
+      stripEl.addEventListener("click", (e) => {
+        const thumb = e.target.closest(".img-thumb");
+        if (!thumb) return;
+        const id = thumb.dataset.id;
+        if (e.target.closest(".img-thumb-del")) {
+          removeItem(id);
+          return;
+        }
+        setActive(id);
+      });
+
+      function removeItem(id) {
+        const idx = state.items.findIndex((i) => i.id === id);
+        if (idx < 0) return;
+        state.items[idx].bitmap.close?.();
+        state.items.splice(idx, 1);
+        if (state.activeId === id) {
+          const next = state.items[Math.min(idx, state.items.length - 1)];
+          state.activeId = next ? next.id : null;
+        }
+        renderStrip();
+        syncLayout();
+        syncPanel();
+        scheduleRedraw();
       }
 
       // ── 载入图片 ──────────────────────────────────────
@@ -365,7 +665,7 @@ const description =
         if (loading) return;
         loading = true;
         statusEl.textContent = "正在读取图片…";
-        const added = [];
+        let firstAdded = null;
         for (const file of Array.from(files)) {
           if (!file.type.startsWith("image/")) continue;
           try {
@@ -377,133 +677,29 @@ const description =
               bitmap,
               w0: bitmap.width,
               h0: bitmap.height,
+              crop: null,
+              edit: { ...EDIT_DEFAULTS },
             };
             state.items.push(item);
-            listEl.appendChild(renderItem(item));
-            added.push(item);
+            if (!firstAdded) firstAdded = item;
           } catch (err) {
             console.warn("[image-tool] 无法读取", file.name, err);
           }
         }
         loading = false;
-        scheduleRedraw();
-        if (!added.length && state.items.length === 0) {
+
+        if (!state.items.length) {
           statusEl.textContent = "没有读取到可用的图片";
+          return;
         }
+
+        renderStrip();
+        syncLayout();
+        // 新加的图片直接切成当前编辑对象
+        setActive(firstAdded ? firstAdded.id : state.items[0].id);
+        scheduleRedraw();
+        if (!firstAdded) statusEl.textContent = "没有读取到可用的图片";
       }
-
-      // ── 面板交互 ──────────────────────────────────────
-
-      function syncFormatUI() {
-        for (const btn of document.querySelectorAll("#seg-format button")) {
-          btn.setAttribute(
-            "aria-pressed",
-            String(btn.dataset.format === state.format),
-          );
-        }
-        const label = { original: "原格式", webp: "WebP", jpeg: "JPEG", png: "PNG" };
-        document.getElementById("val-format").textContent =
-          label[state.format] || "原格式";
-
-        const lossy = state.format === "jpeg" || state.format === "webp";
-        const qInput = document.getElementById("in-quality");
-        qInput.disabled = !lossy;
-        document.getElementById("quality-section").style.opacity = lossy ? "1" : "0.55";
-        document.getElementById("quality-note").textContent = lossy
-          ? "数值越低体积越小"
-          : state.format === "png"
-            ? "PNG 为无损格式，忽略质量"
-            : "原格式时仅 JPEG / WebP 生效";
-      }
-
-      function syncWidthUI() {
-        const el = document.getElementById("val-width");
-        if (!state.width) {
-          el.textContent = "原始";
-        } else {
-          const first = state.items[0];
-          el.textContent = first
-            ? `${state.width} × ${outSize({ ...first, w0: first.w0, h0: first.h0 }).h}`
-            : `${state.width}px`;
-        }
-      }
-
-      document.getElementById("seg-format").addEventListener("click", (e) => {
-        const btn = e.target.closest("button[data-format]");
-        if (!btn) return;
-        state.format = btn.dataset.format;
-        syncFormatUI();
-        scheduleRedraw();
-      });
-
-      document.getElementById("in-quality").addEventListener("input", (e) => {
-        state.quality = Number(e.target.value);
-        document.getElementById("val-quality").textContent = `${state.quality}%`;
-      });
-
-      document.getElementById("in-width").addEventListener("input", (e) => {
-        const v = Number(e.target.value);
-        state.width = v > 0 ? Math.round(v) : null;
-        syncWidthUI();
-        scheduleRedraw();
-      });
-
-      document.getElementById("btn-rot-l").addEventListener("click", () => {
-        state.rotate = (state.rotate + 270) % 360;
-        scheduleRedraw();
-        syncWidthUI();
-      });
-
-      document.getElementById("btn-rot-r").addEventListener("click", () => {
-        state.rotate = (state.rotate + 90) % 360;
-        scheduleRedraw();
-        syncWidthUI();
-      });
-
-      document.getElementById("btn-flip-h").addEventListener("click", (e) => {
-        state.flipH = !state.flipH;
-        e.currentTarget.setAttribute("aria-pressed", String(state.flipH));
-        scheduleRedraw();
-      });
-
-      document.getElementById("btn-flip-v").addEventListener("click", (e) => {
-        state.flipV = !state.flipV;
-        e.currentTarget.setAttribute("aria-pressed", String(state.flipV));
-        scheduleRedraw();
-      });
-
-      for (const [id, key, outId] of [
-        ["in-bright", "brightness", "val-bright"],
-        ["in-contrast", "contrast", "val-contrast"],
-        ["in-saturate", "saturate", "val-saturate"],
-      ]) {
-        document.getElementById(id).addEventListener("input", (e) => {
-          state[key] = Number(e.target.value);
-          document.getElementById(outId).textContent = `${state[key]}%`;
-          scheduleRedraw();
-        });
-      }
-
-      document.getElementById("btn-reset").addEventListener("click", () => {
-        Object.assign(state, DEFAULTS);
-        document.getElementById("in-quality").value = "85";
-        document.getElementById("val-quality").textContent = "85%";
-        document.getElementById("in-width").value = "";
-        document.getElementById("in-bright").value = "100";
-        document.getElementById("in-contrast").value = "100";
-        document.getElementById("in-saturate").value = "100";
-        document.getElementById("val-bright").textContent = "100%";
-        document.getElementById("val-contrast").textContent = "100%";
-        document.getElementById("val-saturate").textContent = "100%";
-        document.getElementById("btn-flip-h").setAttribute("aria-pressed", "false");
-        document.getElementById("btn-flip-v").setAttribute("aria-pressed", "false");
-        syncFormatUI();
-        syncWidthUI();
-        scheduleRedraw();
-        statusEl.textContent = "已重置设置";
-      });
-
-      // ── 上传交互 ──────────────────────────────────────
 
       drop.addEventListener("click", () => input.click());
       drop.addEventListener("keydown", (e) => {
@@ -516,29 +712,6 @@ const description =
       input.addEventListener("change", () => {
         if (input.files?.length) addFiles(input.files);
         input.value = "";
-      });
-
-      listEl.addEventListener("click", (e) => {
-        const t = e.target;
-        const del = t.closest(".img-del");
-        if (del) {
-          const card = del.closest(".img-card");
-          const id = card?.dataset.id;
-          const idx = state.items.findIndex((i) => i.id === id);
-          if (idx >= 0) {
-            state.items[idx].bitmap.close?.();
-            state.items.splice(idx, 1);
-          }
-          card?.remove();
-          scheduleRedraw();
-          return;
-        }
-        const canvas = t.closest(".img-thumb");
-        if (canvas) {
-          const id = canvas.closest(".img-card")?.dataset.id;
-          const item = state.items.find((i) => i.id === id);
-          if (item) openLightbox(item);
-        }
       });
 
       // 页面级拖入
@@ -577,42 +750,374 @@ const description =
         if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
       });
 
-      // ── 大图预览 ──────────────────────────────────────
+      // ── 面板交互 ──────────────────────────────────────
 
-      function openLightbox(item) {
-        const layer = document.createElement("div");
-        layer.className = "img-lightbox";
+      document.getElementById("seg-format").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-format]");
+        if (!btn) return;
+        applyEdit({ format: btn.dataset.format });
+        syncPanel();
+      });
 
-        const canvas = document.createElement("canvas");
-        drawItem(canvas, item, 1600);
+      document.getElementById("in-quality").addEventListener("input", (e) => {
+        const v = Number(e.target.value);
+        document.getElementById("val-quality").textContent = `${v}%`;
+        applyEdit({ quality: v });
+      });
 
-        const bar = document.createElement("div");
-        bar.className = "img-lightbox-bar";
-        const size = outSize(item);
-        const info = document.createElement("span");
-        info.textContent = `${item.name} · ${size.w}×${size.h} · ${EXT[mimeOf(item)] || "png"}`;
-        const dl = document.createElement("button");
-        dl.type = "button";
-        dl.textContent = "下载这张";
-        dl.addEventListener("click", async (ev) => {
-          ev.stopPropagation();
-          await exportOne(item);
+      document.getElementById("in-width").addEventListener("input", (e) => {
+        const v = Number(e.target.value);
+        applyEdit({ width: v > 0 ? Math.round(v) : null });
+        syncWidthLabel();
+      });
+
+      document.getElementById("seg-crop").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-ratio]");
+        if (!btn) return;
+        applyEdit({ cropRatio: btn.dataset.ratio });
+        syncPanel();
+      });
+
+      document.getElementById("btn-rot-l").addEventListener("click", () => {
+        const item = activeItem();
+        if (!item) return;
+        applyEdit({ rotate: (item.edit.rotate + 270) % 360 });
+      });
+
+      document.getElementById("btn-rot-r").addEventListener("click", () => {
+        const item = activeItem();
+        if (!item) return;
+        applyEdit({ rotate: (item.edit.rotate + 90) % 360 });
+      });
+
+      for (const [id, key] of [
+        ["btn-flip-h", "flipH"],
+        ["btn-flip-v", "flipV"],
+      ]) {
+        document.getElementById(id).addEventListener("click", () => {
+          const item = activeItem();
+          if (!item) return;
+          applyEdit({ [key]: !item.edit[key] });
+          syncPanel();
         });
-        const close = document.createElement("button");
-        close.type = "button";
-        close.textContent = "关闭";
-        close.addEventListener("click", () => layer.remove());
-        bar.append(info, dl, close);
-
-        layer.append(canvas, bar);
-        layer.addEventListener("click", (e) => {
-          if (e.target === layer) layer.remove();
-        });
-        document.body.appendChild(layer);
       }
 
+      for (const [id, key, outId] of [
+        ["in-bright", "brightness", "val-bright"],
+        ["in-contrast", "contrast", "val-contrast"],
+        ["in-saturate", "saturate", "val-saturate"],
+        ["in-radius", "radius", "val-radius"],
+      ]) {
+        document.getElementById(id).addEventListener("input", (e) => {
+          const v = Number(e.target.value);
+          document.getElementById(outId).textContent = `${v}%`;
+          applyEdit({ [key]: v });
+        });
+      }
+
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        const item = activeItem();
+        if (!item) return;
+        item.crop = null;
+        item.edit = { ...EDIT_DEFAULTS };
+        syncPanel();
+        scheduleRedraw();
+        statusEl.textContent = "已重置这张";
+      });
+
+      document.getElementById("btn-apply-all").addEventListener("click", () => {
+        const src = activeItem();
+        if (!src) return;
+        const base = { ...src.edit };
+        let n = 0;
+        for (const it of state.items) {
+          if (it === src) continue;
+          it.edit = { ...base };
+          n++;
+        }
+        scheduleRedraw();
+        statusEl.textContent = n
+          ? `已把当前设置应用到其余 ${n} 张（手动裁剪不复制）`
+          : "只有一张图片，无需应用";
+      });
+
+      // ── 手动裁剪 ──────────────────────────────────────
+
+      const MIN_BOX = 20;
+      let closeCropper = null;
+
+      function openCropper(item) {
+        if (closeCropper) closeCropper();
+        if (!item) return;
+
+        const layer = document.createElement("div");
+        layer.className = "crop-layer";
+        layer.innerHTML = `
+          <div class="crop-head">
+            <strong>裁剪</strong>
+            <span class="crop-name"></span>
+            <span class="crop-tip">拖角缩放 · 框内移动 · 空白处重新框选</span>
+          </div>
+          <div class="crop-stage">
+            <div class="crop-frame">
+              <canvas class="crop-canvas"></canvas>
+              <div class="crop-box">
+                <i class="crop-handle" data-h="nw"></i>
+                <i class="crop-handle" data-h="ne"></i>
+                <i class="crop-handle" data-h="sw"></i>
+                <i class="crop-handle" data-h="se"></i>
+                <em class="crop-size"></em>
+              </div>
+            </div>
+          </div>
+          <div class="crop-bar">
+            <button type="button" class="crop-btn" data-act="reset">重置</button>
+            <button type="button" class="crop-btn" data-act="ratio">按当前比例</button>
+            <span class="crop-spacer"></span>
+            <button type="button" class="crop-btn" data-act="cancel">取消</button>
+            <button type="button" class="crop-btn crop-btn-primary" data-act="apply">应用</button>
+          </div>
+        `;
+        document.body.appendChild(layer);
+        layer.querySelector(".crop-name").textContent = item.name;
+
+        // 锁住底层滚动，避免关闭后页面位置跑掉
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const close = () => {
+          document.body.style.overflow = prevOverflow;
+          layer.remove();
+          if (closeCropper === close) closeCropper = null;
+        };
+        closeCropper = close;
+
+        const stage = layer.querySelector(".crop-stage");
+        const frame = layer.querySelector(".crop-frame");
+        const canvas = layer.querySelector(".crop-canvas");
+        const boxEl = layer.querySelector(".crop-box");
+        const sizeEl = layer.querySelector(".crop-size");
+
+        // 按可用空间等比铺开
+        const cs = getComputedStyle(stage);
+        const availW =
+          stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const availH =
+          stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        const imgRatio = item.w0 / item.h0;
+        let dispW = Math.max(80, availW);
+        let dispH = dispW / imgRatio;
+        if (dispH > availH) {
+          dispH = Math.max(80, availH);
+          dispW = dispH * imgRatio;
+        }
+        dispW = Math.round(dispW);
+        dispH = Math.round(dispH);
+
+        frame.style.width = dispW + "px";
+        frame.style.height = dispH + "px";
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.round(dispW * dpr);
+        canvas.height = Math.round(dispH * dpr);
+        canvas.style.width = dispW + "px";
+        canvas.style.height = dispH + "px";
+        const cctx = canvas.getContext("2d");
+        cctx.imageSmoothingQuality = "high";
+        cctx.drawImage(item.bitmap, 0, 0, canvas.width, canvas.height);
+
+        function ratioBox() {
+          const r = RATIOS[item.edit.cropRatio];
+          if (!r) return { x: 0, y: 0, w: dispW, h: dispH };
+          let w = dispW;
+          let h = w / r;
+          if (h > dispH) {
+            h = dispH;
+            w = h * r;
+          }
+          return { x: (dispW - w) / 2, y: (dispH - h) / 2, w, h };
+        }
+
+        function initialBox() {
+          if (item.crop) {
+            return {
+              x: item.crop.x * dispW,
+              y: item.crop.y * dispH,
+              w: Math.max(MIN_BOX, item.crop.w * dispW),
+              h: Math.max(MIN_BOX, item.crop.h * dispH),
+            };
+          }
+          return ratioBox();
+        }
+
+        let box = initialBox();
+
+        function paint() {
+          boxEl.style.left = box.x + "px";
+          boxEl.style.top = box.y + "px";
+          boxEl.style.width = box.w + "px";
+          boxEl.style.height = box.h + "px";
+          const cw = Math.max(1, Math.round((box.w / dispW) * item.w0));
+          const ch = Math.max(1, Math.round((box.h / dispH) * item.h0));
+          sizeEl.textContent = `${cw} × ${ch}`;
+        }
+        paint();
+
+        let drag = null;
+
+        function local(e) {
+          const r = frame.getBoundingClientRect();
+          return { x: e.clientX - r.left, y: e.clientY - r.top };
+        }
+
+        frame.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0 && e.button !== undefined) return;
+          e.preventDefault();
+          const p = local(e);
+          const handle = e.target.closest(".crop-handle");
+          if (handle) {
+            const c = handle.dataset.h;
+            drag = {
+              mode: "handle",
+              corner: c,
+              anchor: {
+                nw: { x: box.x + box.w, y: box.y + box.h },
+                ne: { x: box.x, y: box.y + box.h },
+                sw: { x: box.x + box.w, y: box.y },
+                se: { x: box.x, y: box.y },
+              }[c],
+            };
+          } else if (e.target.closest(".crop-box")) {
+            drag = { mode: "move", start: p, box0: { ...box } };
+          } else {
+            drag = { mode: "new", start: p, dirX: 1, dirY: 1, first: true };
+          }
+          frame.setPointerCapture?.(e.pointerId);
+        });
+
+        frame.addEventListener("pointermove", (e) => {
+          if (!drag) return;
+          const p = local(e);
+
+          if (drag.mode === "move") {
+            const maxX = dispW - drag.box0.w;
+            const maxY = dispH - drag.box0.h;
+            box = {
+              w: drag.box0.w,
+              h: drag.box0.h,
+              x: Math.min(maxX, Math.max(0, drag.box0.x + (p.x - drag.start.x))),
+              y: Math.min(maxY, Math.max(0, drag.box0.y + (p.y - drag.start.y))),
+            };
+            paint();
+            return;
+          }
+
+          if (drag.mode === "handle") {
+            const a = drag.anchor;
+            const c = drag.corner;
+            let w = Math.abs(p.x - a.x);
+            let h = Math.abs(p.y - a.y);
+            const r = RATIOS[item.edit.cropRatio];
+            if (r) {
+              // 取更“大”的方向定尺寸，保证指针落在框内
+              if (h * r > w) w = h * r;
+              h = w / r;
+            }
+            w = Math.max(MIN_BOX, w);
+            h = Math.max(MIN_BOX, h);
+            const maxW = c.includes("w") ? a.x : dispW - a.x;
+            const maxH = c.includes("n") ? a.y : dispH - a.y;
+            const k = Math.min(1, maxW / w, maxH / h);
+            w *= k;
+            h *= k;
+            box = {
+              w,
+              h,
+              x: c.includes("w") ? a.x - w : a.x,
+              y: c.includes("n") ? a.y - h : a.y,
+            };
+            paint();
+            return;
+          }
+
+          // 新建选框
+          if (drag.first) {
+            drag.first = false;
+            drag.dirX = p.x >= drag.start.x ? 1 : -1;
+            drag.dirY = p.y >= drag.start.y ? 1 : -1;
+          }
+          let w = Math.abs(p.x - drag.start.x);
+          let h = Math.abs(p.y - drag.start.y);
+          const r = RATIOS[item.edit.cropRatio];
+          if (r) {
+            if (h * r > w) w = h * r;
+            h = w / r;
+          }
+          w = Math.max(MIN_BOX, Math.min(w, dispW));
+          h = Math.max(MIN_BOX, Math.min(h, dispH));
+          let x = drag.dirX > 0 ? drag.start.x : drag.start.x - w;
+          let y = drag.dirY > 0 ? drag.start.y : drag.start.y - h;
+          x = Math.min(Math.max(0, x), dispW - w);
+          y = Math.min(Math.max(0, y), dispH - h);
+          box = { x, y, w, h };
+          paint();
+        });
+
+        const endDrag = () => {
+          drag = null;
+        };
+        frame.addEventListener("pointerup", endDrag);
+        frame.addEventListener("pointercancel", endDrag);
+
+        layer.addEventListener("click", (e) => {
+          const btn = e.target.closest(".crop-btn");
+          if (!btn) return;
+          const act = btn.dataset.act;
+
+          if (act === "cancel") {
+            close();
+            return;
+          }
+
+          if (act === "reset") {
+            item.crop = null;
+            box = ratioBox();
+            paint();
+            return;
+          }
+
+          if (act === "ratio") {
+            box = ratioBox();
+            paint();
+            return;
+          }
+
+          if (act === "apply") {
+            const isFull =
+              box.x <= 0.5 &&
+              box.y <= 0.5 &&
+              box.w >= dispW - 1 &&
+              box.h >= dispH - 1;
+            item.crop = isFull
+              ? null
+              : {
+                  x: box.x / dispW,
+                  y: box.y / dispH,
+                  w: box.w / dispW,
+                  h: box.h / dispH,
+                };
+            const label = sizeEl.textContent;
+            close();
+            scheduleRedraw();
+            statusEl.textContent = isFull ? "已取消裁剪" : `已裁剪为 ${label}`;
+          }
+        });
+      }
+
+      document.getElementById("btn-crop-one").addEventListener("click", () => {
+        openCropper(activeItem());
+      });
+
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") document.querySelector(".img-lightbox")?.remove();
+        if (e.key === "Escape" && closeCropper) closeCropper();
       });
 
       // ── 导出 ──────────────────────────────────────────
@@ -641,9 +1146,9 @@ const description =
           fctx.fillStyle = "#ffffff";
           fctx.fillRect(0, 0, flat.width, flat.height);
           fctx.drawImage(canvas, 0, 0);
-          return { blob: await toBlob(flat, mime, state.quality), mime };
+          return { blob: await toBlob(flat, mime, item.edit.quality), mime };
         }
-        return { blob: await toBlob(canvas, mime, state.quality), mime };
+        return { blob: await toBlob(canvas, mime, item.edit.quality), mime };
       }
 
       function baseName(name) {
@@ -660,44 +1165,43 @@ const description =
         setTimeout(() => URL.revokeObjectURL(a.href), 6000);
       }
 
-      async function exportOne(item) {
-        statusEl.textContent = "正在导出…";
-        try {
-          const { blob, mime } = await renderBlob(item);
-          const ext = EXT[mime] || "png";
-          saveBlob(blob, `${baseName(item.name)}.${ext}`);
-          statusEl.textContent = `已导出 ${(blob.size / 1024).toFixed(0)} KB`;
-        } catch (err) {
-          console.error(err);
-          statusEl.textContent = "导出失败，请重试";
-        }
-      }
-
-      exportBtn.addEventListener("click", async () => {
-        if (!state.items.length) return;
-        exportBtn.disabled = true;
-        const total = state.items.length;
+      async function exportList(list) {
+        if (!list.length) return;
+        const total = list.length;
         for (let i = 0; i < total; i++) {
-          const item = state.items[i];
           statusEl.textContent = `正在导出 ${i + 1}/${total}…`;
           try {
-            const { blob, mime } = await renderBlob(item);
+            const { blob, mime } = await renderBlob(list[i]);
             const ext = EXT[mime] || "png";
-            saveBlob(blob, `${baseName(item.name)}.${ext}`);
+            saveBlob(blob, `${baseName(list[i].name)}.${ext}`);
           } catch (err) {
-            console.warn("[image-tool] 导出失败", item.name, err);
+            console.warn("[image-tool] 导出失败", list[i].name, err);
           }
           // 多张连续下载之间留间隔，避免浏览器拦截
           if (i < total - 1) await new Promise((r) => setTimeout(r, 320));
         }
         statusEl.textContent = `已导出 ${total} 张`;
-        exportBtn.disabled = false;
+      }
+
+      document.getElementById("btn-save-one").addEventListener("click", () => {
+        const item = activeItem();
+        if (!item) return;
+        exportList([item]);
+      });
+
+      btnExportEdited.addEventListener("click", () => {
+        exportList(state.items.filter(isEdited));
+      });
+
+      btnExportAll.addEventListener("click", () => {
+        exportList([...state.items]);
       });
 
       // ── 初始化 ────────────────────────────────────────
 
-      syncFormatUI();
-      syncWidthUI();
+      syncLayout();
+      syncPanel();
+      syncActions();
     </script>
   </body>
 </html>

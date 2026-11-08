@@ -49,6 +49,27 @@
 	}
 }
 
+/* 强制深色版（排名工具用）：不跟随系统，固定深色调 */
+body.theme-dark {
+	--primary: #2ecc71;
+	--card-bg: #2b2b2d;
+	--line-divider: rgba(255, 255, 255, 0.08);
+	--content-meta: rgba(255, 255, 255, 0.55);
+	--btn-regular-bg: #3a3a3c;
+	--btn-regular-bg-hover: #47474a;
+	--btn-regular-bg-active: #525256;
+	--btn-content: #e4e4e6;
+	--btn-plain-bg-hover: rgba(255, 255, 255, 0.08);
+	--muted: #333335;
+	--deep-text: #f2f2f4;
+
+	--tool-bg: #1a1a1c;
+	--tool-text: #ececee;
+	--tool-topbar-bg: rgba(26, 26, 28, 0.86);
+
+	color-scheme: dark;
+}
+
 html,
 body {
 	margin: 0;
@@ -56,7 +77,10 @@ body {
 }
 
 body {
-	min-height: 100dvh;
+	height: 100dvh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 	background-color: var(--tool-bg);
 	color: var(--tool-text);
 	font-family:
@@ -136,15 +160,30 @@ body {
 /* ── 主体 ───────────────────────────────────────────── */
 
 .tool-main {
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
 	padding: clamp(0.75rem, 2.5vw, 1.6rem);
+	padding-top: calc(clamp(0.75rem, 2.5vw, 1.6rem) + env(safe-area-inset-top, 0px));
 	padding-bottom: calc(clamp(0.75rem, 2.5vw, 1.6rem) + env(safe-area-inset-bottom, 0px));
 	max-width: 1120px;
 	margin: 0 auto;
 }
 
-/* 独立页没有博客顶栏，工具工具栏只需贴在顶栏下方 */
-.tool-main .rank-toolbar {
-	top: var(--topbar-h);
+@media (max-width: 900px) {
+	/* 窄屏内容多，允许整页滚动 */
+	body {
+		height: auto;
+		min-height: 100dvh;
+		overflow: visible;
+		display: block;
+	}
+
+	.tool-main {
+		display: block;
+	}
 }
 
 .tool-foot {
@@ -154,14 +193,54 @@ body {
 	color: var(--content-meta);
 	font-size: 0.75rem;
 	text-align: center;
-}
-
-@media (max-width: 480px) {
+}@media (max-width: 480px) {
 	.tool-title {
 		font-size: 0.86rem;
 	}
 
 	.tool-chip {
 		display: none;
+	}
+}
+
+/* 浮动返回入口：不占布局高度，保持工具页的整幅视觉 */
+.tool-back-float {
+	position: fixed;
+	top: calc(0.75rem + env(safe-area-inset-top, 0px));
+	left: 0.85rem;
+	z-index: 40;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.2rem;
+	height: 2.2rem;
+	border-radius: 50%;
+	border: 1px solid var(--line-divider);
+	background-color: rgba(255, 255, 255, 0.07);
+	color: var(--content-meta);
+	text-decoration: none;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	transition:
+		background-color 0.16s ease,
+		color 0.16s ease;
+}
+
+.tool-back-float:hover {
+	background-color: rgba(255, 255, 255, 0.16);
+	color: var(--deep-text);
+}
+
+.tool-back-float svg {
+	width: 1.05rem;
+	height: 1.05rem;
+}
+
+@media (max-width: 480px) {
+	.tool-back-float {
+		width: 2rem;
+		height: 2rem;
+		top: calc(0.55rem + env(safe-area-inset-top, 0px));
+		left: 0.55rem;
 	}
 }

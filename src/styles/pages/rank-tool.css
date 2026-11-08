@@ -4,19 +4,37 @@
    博客三栏布局下内容区只有 480px 左右，媒体查询管不到 */
 .rank-wrap {
 	container-type: inline-size;
+	flex: 1 1 auto;
+	min-height: 0;
 	width: 100%;
-	min-width: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 .rank-app {
-	--card-size: 104px;
-	--label-width: 5.5rem;
-	--row-gap: 0.5rem;
+	--card-size: 92px;
+	--label-width: 7.2rem;
+	--row-gap: 0.55rem;
 	--card-gap: 0.4rem;
 	display: flex;
 	flex-direction: column;
-	gap: 0.9rem;
+	gap: 0.8rem;
+	flex: 1 1 auto;
+	min-height: 0;
 	min-width: 0;
+}
+
+/* 居中大标题 */
+.rank-hero {
+	margin: 0.2rem 0 0.7rem;
+	text-align: center;
+	font-size: clamp(1.4rem, 4.2vw, 2.05rem);
+	font-weight: 900;
+	letter-spacing: 0.03em;
+	line-height: 1.2;
+	color: #ff5252;
+	text-shadow: 0 0 24px rgba(255, 82, 82, 0.25);
+	flex: 0 0 auto;
 }
 
 .rank-app[data-size="small"] {
@@ -37,15 +55,9 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
+	justify-content: center;
 	gap: 0.5rem;
-	padding: 0.6rem;
-	border-radius: 0.75rem;
-	border: 1px solid var(--line-divider);
-	background-color: var(--card-bg);
-	position: sticky;
-	top: 0;
-	z-index: 20;
-	backdrop-filter: blur(8px);
+	padding: 0;
 }
 
 .rank-btn {
@@ -53,13 +65,13 @@
 	align-items: center;
 	justify-content: center;
 	gap: 0.35rem;
-	height: 2.15rem;
-	padding: 0 0.8rem;
-	border-radius: 0.55rem;
+	height: 2.3rem;
+	padding: 0 1rem;
+	border-radius: 0.4rem;
 	border: 1px solid transparent;
-	background-color: var(--btn-regular-bg);
-	color: var(--btn-content);
-	font-size: 0.82rem;
+	background-color: #3a3a3c;
+	color: #e8e8ea;
+	font-size: 0.88rem;
 	font-weight: 600;
 	line-height: 1;
 	white-space: nowrap;
@@ -72,11 +84,11 @@
 }
 
 .rank-btn:hover {
-	background-color: var(--btn-regular-bg-hover);
+	background-color: #4a4a4d;
 }
 
 .rank-btn:active {
-	background-color: var(--btn-regular-bg-active);
+	background-color: #545458;
 }
 
 .rank-btn:focus-visible {
@@ -90,45 +102,50 @@
 }
 
 .rank-btn-primary {
-	background-color: var(--primary);
-	color: white;
+	background-color: #2ecc71;
+	color: #0d2417;
 }
 
 .rank-btn-primary:hover {
-	background-color: var(--primary);
-	filter: brightness(1.06);
+	background-color: #2ecc71;
+	filter: brightness(1.08);
 }
 
 .rank-btn-primary:active {
-	background-color: var(--primary);
-	filter: brightness(0.95);
+	background-color: #2ecc71;
+	filter: brightness(0.94);
 }
 
 .rank-btn-ghost {
 	background-color: transparent;
-	color: var(--content-meta);
-	border-color: var(--line-divider);
+	color: rgba(255, 255, 255, 0.62);
+	border-color: rgba(255, 255, 255, 0.16);
 }
 
 .rank-btn-ghost:hover {
-	background-color: var(--btn-plain-bg-hover);
-	color: var(--primary);
+	background-color: rgba(255, 255, 255, 0.09);
+	color: #fff;
 }
 
 .rank-select {
-	height: 2.15rem;
-	padding: 0 1.7rem 0 0.7rem;
-	border-radius: 0.55rem;
-	border: 1px solid var(--line-divider);
-	background-color: var(--card-bg);
-	color: var(--content-meta);
-	font-size: 0.82rem;
+	height: 2.3rem;
+	padding: 0 1.7rem 0 0.9rem;
+	border-radius: 0.4rem;
+	border: 1px solid transparent;
+	background-color: #3a3a3c;
+	color: #e8e8ea;
+	font-size: 0.88rem;
+	font-weight: 600;
 	cursor: pointer;
 	appearance: none;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23bbbbbb'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
 	background-repeat: no-repeat;
 	background-position: right 0.35rem center;
 	background-size: 1.1rem;
+}
+
+.rank-select:hover {
+	background-color: #4a4a4d;
 }
 
 .rank-select:focus-visible {
@@ -157,17 +174,21 @@
 	flex-direction: column;
 	gap: var(--row-gap);
 	min-width: 0;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 2px;
 }
 
 .tier-row {
 	display: grid;
 	grid-template-columns: var(--label-width) minmax(0, 1fr);
 	align-items: stretch;
-	border-radius: 0.65rem;
-	border: 1px solid var(--line-divider);
-	background-color: var(--card-bg);
+	border-radius: 0.5rem;
+	background-color: #2b2b2d;
 	overflow: hidden;
-	min-height: calc(var(--card-size) + 1rem);
+	min-height: calc(var(--card-size) + 0.7rem);
 }
 
 .tier-label {
@@ -176,9 +197,9 @@
 	align-items: center;
 	justify-content: center;
 	padding: 0.3rem;
-	color: #1a1a1a;
+	color: #16181a;
 	font-weight: 800;
-	font-size: 0.92rem;
+	font-size: 1.05rem;
 	line-height: 1.25;
 	text-align: center;
 	word-break: break-word;
@@ -248,21 +269,6 @@
 	min-height: calc(var(--card-size) + 0.5rem);
 	min-width: 0;
 	transition: background-color 0.15s ease;
-}
-
-.tier-items:empty::after {
-	content: "把卡片拖到这里";
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	align-self: center;
-	width: 100%;
-	height: calc(var(--card-size) - 0.5rem);
-	border-radius: 0.5rem;
-	border: 1px dashed var(--line-divider);
-	color: var(--content-meta);
-	font-size: 0.74rem;
-	opacity: 0.7;
 }
 
 /* ── 卡片 ───────────────────────────────────────────── */
@@ -404,21 +410,24 @@
 /* ── 卡片池 ─────────────────────────────────────────── */
 
 .rank-pool {
-	border-radius: 0.65rem;
-	border: 1px solid var(--line-divider);
-	background-color: var(--card-bg);
-	overflow: hidden;
+	border-radius: 0.5rem;
+	border: 1.5px dashed rgba(255, 255, 255, 0.15);
+	background-color: #202022;
+	overflow-y: auto;
+	overflow-x: hidden;
+	flex: 0 0 auto;
+	max-height: 27vh;
+	min-height: calc(var(--card-size) + 2.5rem);
 }
 
 .pool-head {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	padding: 0.55rem 0.7rem;
-	border-bottom: 1px solid var(--line-divider);
-	font-size: 0.78rem;
+	padding: 0.5rem 0.7rem 0;
+	font-size: 0.76rem;
 	font-weight: 600;
-	color: var(--content-meta);
+	color: rgba(255, 255, 255, 0.45);
 }
 
 .pool-head .pool-count {
@@ -429,8 +438,8 @@
 	height: 1.3rem;
 	padding: 0 0.3rem;
 	border-radius: 999px;
-	background-color: var(--btn-regular-bg);
-	color: var(--btn-content);
+	background-color: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.75);
 	font-size: 0.7rem;
 }
 
@@ -438,7 +447,7 @@
 	margin-left: auto;
 	font-weight: 400;
 	font-size: 0.72rem;
-	opacity: 0.8;
+	opacity: 0.7;
 }
 
 .pool-head .pool-clear {
@@ -447,14 +456,14 @@
 	border-radius: 0.35rem;
 	border: none;
 	background-color: transparent;
-	color: var(--content-meta);
+	color: rgba(255, 255, 255, 0.45);
 	font-size: 0.72rem;
 	cursor: pointer;
 }
 
 .pool-head .pool-clear:hover {
-	background-color: var(--btn-plain-bg-hover);
-	color: #c0392b;
+	background-color: rgba(255, 255, 255, 0.1);
+	color: #ff7b72;
 }
 
 .pool-items {
@@ -463,8 +472,8 @@
 	flex-wrap: wrap;
 	align-content: flex-start;
 	gap: var(--card-gap);
-	padding: 0.6rem;
-	min-height: calc(var(--card-size) + 1.2rem);
+	padding: 0.55rem 0.7rem 0.7rem;
+	min-height: calc(var(--card-size) + 0.6rem);
 }
 
 .pool-items:empty::after {
@@ -474,11 +483,8 @@
 	justify-content: center;
 	width: 100%;
 	min-height: calc(var(--card-size) - 0.4rem);
-	border-radius: 0.5rem;
-	border: 1px dashed var(--line-divider);
-	color: var(--content-meta);
-	font-size: 0.76rem;
-	opacity: 0.7;
+	color: rgba(255, 255, 255, 0.4);
+	font-size: 0.85rem;
 }
 
 /* 整个页面级的文件拖入提示 */
@@ -545,7 +551,7 @@
 @container (max-width: 560px) {
 	.rank-app {
 		--card-size: 88px;
-		--label-width: 4.4rem;
+		--label-width: 5.2rem;
 		--card-gap: 0.32rem;
 	}
 
@@ -590,7 +596,7 @@
 @container (max-width: 430px) {
 	.rank-app {
 		--card-size: 72px;
-		--label-width: 3.6rem;
+		--label-width: 4.2rem;
 	}
 
 	.rank-btn {
@@ -609,8 +615,8 @@
 @media (max-width: 768px) {
 	.rank-app {
 		--card-size: 72px;
-		--label-width: 3.2rem;
-		--row-gap: 0.4rem;
+		--label-width: 4rem;
+		--row-gap: 0.45rem;
 		--card-gap: 0.3rem;
 	}
 
@@ -649,14 +655,16 @@
 	}
 
 	.tier-label {
-		font-size: 0.7rem;
+		font-size: 0.86rem;
 		padding: 0.15rem;
 	}
 
 	.tier-label-tools {
 		opacity: 1;
-		right: 0.08rem;
-		top: 0.08rem;
+		right: 0.1rem;
+		bottom: 0.1rem;
+		top: auto;
+		flex-direction: row;
 	}
 
 	.tier-tool-btn {
@@ -672,11 +680,6 @@
 
 	.tier-items {
 		padding: 0.32rem;
-	}
-
-	.tier-items:empty::after {
-		font-size: 0.66rem;
-		height: calc(var(--card-size) - 0.3rem);
 	}
 
 	.rank-card-del {
