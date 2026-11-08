@@ -1,0 +1,182 @@
+/* 工具箱页：工具卡片网格 */
+
+.tools-intro {
+	margin-bottom: 1.25rem;
+	color: var(--content-meta);
+	font-size: 0.9rem;
+	line-height: 1.7;
+}
+
+.tools-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
+	gap: 0.9rem;
+}
+
+.tool-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	padding: 1.1rem 1.15rem;
+	border-radius: 0.9rem;
+	border: 1px solid var(--line-divider);
+	background-color: transparent;
+	color: inherit;
+	text-decoration: none;
+	overflow: hidden;
+	min-width: 0;
+	transition:
+		border-color 0.25s ease,
+		transform 0.25s ease,
+		box-shadow 0.25s ease,
+		background-color 0.25s ease;
+}
+
+.tool-card::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-color: var(--primary);
+	opacity: 0;
+	transition: opacity 0.25s ease;
+	pointer-events: none;
+}
+
+.tool-card:hover {
+	border-color: var(--primary);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.25);
+}
+
+.tool-card:hover::after {
+	opacity: 0.04;
+}
+
+.tool-card:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.tool-card-top {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	min-width: 0;
+}
+
+.tool-card-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.6rem;
+	height: 2.6rem;
+	flex-shrink: 0;
+	border-radius: 0.75rem;
+	background-color: var(--btn-regular-bg);
+	color: var(--primary);
+	transition: background-color 0.25s ease;
+}
+
+.tool-card:hover .tool-card-icon {
+	background-color: var(--btn-regular-bg-hover);
+}
+
+.tool-card-icon svg {
+	font-size: 1.4rem;
+	width: 1.4rem;
+	height: 1.4rem;
+}
+
+.tool-card-name {
+	font-size: 1rem;
+	font-weight: 700;
+	color: var(--deep-text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root.dark .tool-card-name {
+	color: #f2f2f2;
+}
+
+.tool-card-desc {
+	font-size: 0.82rem;
+	line-height: 1.65;
+	color: var(--content-meta);
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.tool-card-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-top: auto;
+	padding-top: 0.15rem;
+}
+
+.tool-card-tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.1rem 0.45rem;
+	border-radius: 999px;
+	background-color: var(--btn-regular-bg);
+	color: var(--btn-content);
+	font-size: 0.7rem;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.tool-card-arrow {
+	position: absolute;
+	top: 0.9rem;
+	right: 0.9rem;
+	color: var(--primary);
+	font-size: 1.1rem;
+	opacity: 0;
+	transform: translateX(-4px);
+	transition:
+		opacity 0.25s ease,
+		transform 0.25s ease;
+}
+
+.tool-card:hover .tool-card-arrow {
+	opacity: 1;
+	transform: translateX(0);
+}
+
+/* 待补充的占位卡：让网格在只有一个工具时不显得空荡 */
+.tool-card-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	min-height: 8.5rem;
+	padding: 1.1rem;
+	border-radius: 0.9rem;
+	border: 1px dashed var(--line-divider);
+	color: var(--content-meta);
+	font-size: 0.8rem;
+	text-align: center;
+}
+
+.tool-card-empty svg {
+	font-size: 1.5rem;
+	opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+	.tools-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.tool-card {
+		padding: 1rem;
+	}
+}

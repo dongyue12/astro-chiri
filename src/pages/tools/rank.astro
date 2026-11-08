@@ -1,0 +1,824 @@
+---
+import "@/styles/pages/rank-standalone.css";
+import "@/styles/pages/rank-tool.css";
+
+const title = "从夯到拉排名";
+const description =
+	"把图片拖进「夯」到「拉」的等级条，排出强度榜，一键导出成图。图片只在浏览器本地处理，不会上传到任何服务器。";
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>{title} · 工具箱</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+  </head>
+  <body>
+    <header class="tool-topbar">
+      <a class="tool-back" href="/tools/">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5Z"></path>
+        </svg>
+        工具箱
+      </a>
+      <h1 class="tool-title">{title}</h1>
+      <span class="tool-chip">图片不上传</span>
+    </header>
+
+    <main class="tool-main">
+      <div class="rank-wrap">
+        <div class="rank-app" data-size="default">
+          <!-- 工具栏 -->
+          <div class="rank-toolbar">
+            <label class="rank-btn rank-btn-primary" for="rank-file-input">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M11 15V7.85l-2.6 2.6L7 9l5-5 5 5-1.4 1.45L13 7.85V15h-2Zm-6 4q-.825 0-1.412-.587Q3 17.825 3 17v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 19 19 19H5Z"
+                ></path>
+              </svg>
+              添加图片
+            </label>
+            <input id="rank-file-input" type="file" accept="image/*" multiple hidden />
+
+            <select class="rank-select" id="rank-size" aria-label="卡片尺寸">
+              <option value="small">小尺寸</option>
+              <option value="default" selected>默认尺寸</option>
+              <option value="medium">中尺寸</option>
+              <option value="large">大尺寸</option>
+            </select>
+
+            <button class="rank-btn" type="button" id="rank-add-tier">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M11 13H5v-2h6V5h2v6h6v2h-6v6h-2v-6Z"></path>
+              </svg>
+              添加栏位
+            </button>
+
+            <button class="rank-btn rank-btn-ghost" type="button" id="rank-reset">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 20q-3.35 0-5.675-2.325T4 12q0-3.35 2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V5h2v5h-5V8h1.9q-.8-1.35-2.175-2.175Q13.35 5 12 5q-2.5 0-4.25 1.75T6 12q0 2.5 1.75 4.25T12 18q1.9 0 3.4-1.075 1.5-1.075 2.1-2.775h2.1q-.675 2.625-2.825 4.237Q14.625 20 12 20Z"
+                ></path>
+              </svg>
+              重置排名
+            </button>
+
+            <span class="rank-toolbar-spacer"></span>
+
+            <span class="rank-hint">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
+                <path d="M11 17h2v-6h-2v6Zm1-8q.425 0 .713-.288Q13 8.425 13 8t-.287-.713Q12.425 7 12 7t-.712.287Q11 7.575 11 8t.288.712Q11.575 9 12 9Zm0 13q-2.075 0-3.9-.788-1.825-.787-3.175-2.137-1.35-1.35-2.137-3.175Q2 14.075 2 12t.788-3.9q.787-1.825 2.137-3.175 1.35-1.35 3.175-2.138Q9.925 2 12 2t3.9.787q1.825.788 3.175 2.138 1.35 1.35 2.137 3.175Q22 9.925 22 12t-.788 3.9q-.787 1.825-2.137 3.175-1.35 1.35-3.175 2.137Q14.075 22 12 22Z"
+                ></path>
+              </svg>
+              双击看大图
+            </span>
+
+            <button class="rank-btn rank-btn-primary" type="button" id="rank-export">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 15.575q-.2 0-.375-.062-.175-.063-.325-.213L7.4 11.4l1.4-1.4 2.2 2.2V4h2v8.2l2.2-2.2 1.4 1.4-3.9 3.9q-.15.15-.325.213-.175.062-.375.062ZM5 20q-.825 0-1.412-.587Q3 18.825 3 18v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 20 19 20H5Z"
+                ></path>
+              </svg>
+              保存截图
+            </button>
+          </div>
+
+          <!-- 等级条 -->
+          <div class="rank-board" id="rank-board"></div>
+
+          <!-- 卡片池 -->
+          <div class="rank-pool">
+            <div class="pool-head">
+              <span>卡片池</span>
+              <span class="pool-count" id="pool-count">0</span>
+              <span class="pool-tip">拖动到上方任意一档</span>
+              <button class="pool-clear" type="button" id="rank-clear">清空图片</button>
+            </div>
+            <div class="pool-items" data-drop="pool" id="rank-pool"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="tool-foot">
+      拖动卡片排序 · 双击看大图 · 导出的图片在你本机生成
+    </footer>
+
+<script>
+	const ICON_X = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19Z"/></svg>`;
+	const ICON_PALETTE = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22q-2.075 0-3.9-.788-1.825-.787-3.175-2.137-1.35-1.35-2.137-3.175Q2 14.075 2 12t.788-3.9q.787-1.825 2.137-3.175 1.35-1.35 3.175-2.138Q9.925 2 12 2h1.7q.9 0 1.6.563.7.562.7 1.437 0 .35-.075.688-.075.337-.225.662-.3.65-.075 1.3.225.65 1.025.65H18q1.65 0 2.825 1.175T22 11q0 2.275-1.537 3.95-1.538 1.675-3.713 2.575-2.175.9-4.75.437Q9.425 17.5 8.2 16.3q-1.225-1.2-1.225-2.8 0-1.6 1.225-2.8 1.225-1.2 2.8-1.2h1.5q.65 0 1.075-.425.425-.425.425-1.075t-.425-1.075Q13.15 6.5 12.5 6.5H12q-2.5 0-4.25 1.75T6 12.5q0 2.5 1.75 4.25T12 18.5V22Zm0-9q.425 0 .713-.288Q13 12.425 13 12t-.287-.713Q12.425 11 12 11t-.712.287Q11 11.575 11 12t.288.712Q11.575 13 12 13Z"/></svg>`;
+
+	const PALETTE = [
+		"#ff7f7f",
+		"#ffbf7f",
+		"#ffdf7f",
+		"#bfff7f",
+		"#7fbfff",
+		"#bf7fff",
+		"#ff9fd0",
+		"#c9c9c9",
+	];
+
+	const DEFAULT_TIERS = [
+		{ name: "夯", color: "#ff7f7f" },
+		{ name: "顶级", color: "#ffbf7f" },
+		{ name: "人上人", color: "#ffdf7f" },
+		{ name: "NPC", color: "#bfff7f" },
+		{ name: "拉", color: "#7fbfff" },
+	];
+
+	const app = document.querySelector<HTMLElement>(".rank-app");
+	if (app) {
+		const board = document.getElementById("rank-board")!;
+		const pool = document.getElementById("rank-pool")!;
+		const poolCount = document.getElementById("pool-count")!;
+		const fileInput = document.getElementById(
+			"rank-file-input",
+		) as HTMLInputElement;
+		const sizeSelect = document.getElementById(
+			"rank-size",
+		) as HTMLSelectElement;
+
+		let seq = 0;
+		const uid = () => `c${++seq}`;
+
+		// ── 结构构建 ──────────────────────────────────────
+
+		function createTier(name: string, color: string): HTMLElement {
+			const row = document.createElement("div");
+			row.className = "tier-row";
+			row.innerHTML = `
+        <div class="tier-label" style="--tier-color:${color}">
+          <span class="tier-label-text" contenteditable="true" spellcheck="false">${escapeHtml(name)}</span>
+          <div class="tier-label-tools">
+            <button class="tier-tool-btn" type="button" data-act="color" title="改颜色" aria-label="改颜色">${ICON_PALETTE}</button>
+            <button class="tier-tool-btn" type="button" data-act="remove" title="删除这一档" aria-label="删除这一档">${ICON_X}</button>
+          </div>
+          <input type="color" class="tier-color-input" value="${color}" hidden>
+        </div>
+        <div class="tier-items" data-drop="tier"></div>
+      `;
+			return row;
+		}
+
+		function escapeHtml(s: string): string {
+			return s.replace(
+				/[&<>"']/g,
+				(c) =>
+					({
+						"&": "&amp;",
+						"<": "&lt;",
+						">": "&gt;",
+						'"': "&quot;",
+						"'": "&#39;",
+					})[c] as string,
+			);
+		}
+
+		function createCard(src: string, name: string): HTMLElement {
+			const card = document.createElement("div");
+			card.className = "rank-card";
+			card.dataset.id = uid();
+			card.title = name;
+			card.innerHTML = `<img src="${src}" alt="${escapeHtml(name)}" draggable="false" loading="lazy"><button class="rank-card-del" type="button" title="移除" aria-label="移除">${ICON_X}</button>`;
+			return card;
+		}
+
+		function buildDefaultTiers() {
+			board.innerHTML = "";
+			for (const t of DEFAULT_TIERS) board.appendChild(createTier(t.name, t.color));
+		}
+
+		function updatePoolCount() {
+			poolCount.textContent = String(
+				pool.querySelectorAll(".rank-card").length,
+			);
+		}
+
+		// ── 图片导入（本地压缩，不上传）────────────────────
+
+		const MAX_EDGE = 640;
+
+		async function fileToCard(file: File): Promise<HTMLElement | null> {
+			if (!file.type.startsWith("image/")) return null;
+			let bitmap: ImageBitmap | HTMLImageElement;
+			try {
+				bitmap = await createImageBitmap(file);
+			} catch {
+				// 少数格式 createImageBitmap 不支持，退回 <img>
+				const url = URL.createObjectURL(file);
+				const img = new Image();
+				img.src = url;
+				try {
+					await img.decode();
+				} catch {
+					URL.revokeObjectURL(url);
+					return null;
+				}
+				const w0 = img.naturalWidth;
+				const h0 = img.naturalHeight;
+				const s0 = Math.min(1, MAX_EDGE / Math.max(w0, h0));
+				const c0 = document.createElement("canvas");
+				c0.width = Math.round(w0 * s0);
+				c0.height = Math.round(h0 * s0);
+				c0
+					.getContext("2d")!
+					.drawImage(img, 0, 0, c0.width, c0.height);
+				URL.revokeObjectURL(url);
+				return createCard(
+					c0.toDataURL("image/webp", 0.86),
+					file.name.replace(/\.[^./]+$/, ""),
+				);
+			}
+
+			const scale = Math.min(
+				1,
+				MAX_EDGE / Math.max(bitmap.width, bitmap.height),
+			);
+			const w = Math.max(1, Math.round(bitmap.width * scale));
+			const h = Math.max(1, Math.round(bitmap.height * scale));
+			const canvas = document.createElement("canvas");
+			canvas.width = w;
+			canvas.height = h;
+			canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+			if ("close" in bitmap && typeof bitmap.close === "function") {
+				bitmap.close();
+			}
+			// webp 体积小且支持透明；不支持时会自动回落为 png
+			return createCard(
+				canvas.toDataURL("image/webp", 0.86),
+				file.name.replace(/\.[^./]+$/, ""),
+			);
+		}
+
+		let importing = false;
+		async function importFiles(files: FileList | File[]) {
+			if (importing) return;
+			importing = true;
+			try {
+				for (const file of Array.from(files)) {
+					const card = await fileToCard(file);
+					if (card) pool.appendChild(card);
+				}
+			} finally {
+				importing = false;
+				updatePoolCount();
+			}
+		}
+
+		// ── 拖拽（Pointer Events：鼠标与触摸同一套）────────
+
+		let drag: {
+			card: HTMLElement;
+			ghost: HTMLElement;
+			offsetX: number;
+			offsetY: number;
+			active: boolean;
+			pointerId: number;
+			startX: number;
+			startY: number;
+			lastZone: HTMLElement | null;
+			marker: HTMLElement | null;
+		} | null = null;
+
+		const marker = document.createElement("div");
+		marker.className = "rank-marker";
+
+		function beginDrag(card: HTMLElement, e: PointerEvent) {
+			const rect = card.getBoundingClientRect();
+			const ghost = card.cloneNode(true) as HTMLElement;
+			ghost.classList.remove("is-dragging");
+			ghost.classList.add("rank-ghost");
+			ghost.style.width = `${rect.width}px`;
+			ghost.style.height = `${rect.height}px`;
+			ghost.style.left = `${rect.left}px`;
+			ghost.style.top = `${rect.top}px`;
+			ghost.style.position = "fixed";
+			document.body.appendChild(ghost);
+
+			card.classList.add("is-dragging");
+			drag = {
+				card,
+				ghost,
+				offsetX: e.clientX - rect.left,
+				offsetY: e.clientY - rect.top,
+				active: true,
+				pointerId: e.pointerId,
+				startX: e.clientX,
+				startY: e.clientY,
+				lastZone: null,
+				marker: null,
+			};
+		}
+
+		function onPointerDown(e: PointerEvent) {
+			if (e.button !== 0) return;
+			const target = e.target as HTMLElement;
+			const card = target.closest<HTMLElement>(".rank-card");
+			if (!card) return;
+			if (target.closest(".rank-card-del")) return;
+			if (drag) return;
+
+			drag = {
+				card,
+				ghost: null as unknown as HTMLElement,
+				offsetX: 0,
+				offsetY: 0,
+				active: false,
+				pointerId: e.pointerId,
+				startX: e.clientX,
+				startY: e.clientY,
+				lastZone: null,
+				marker: null,
+			};
+		}
+
+		function clearZoneHighlight() {
+			for (const z of document.querySelectorAll("[data-drop].drop-active")) {
+				z.classList.remove("drop-active");
+			}
+			if (drag?.marker) {
+				drag.marker.remove();
+				drag.marker = null;
+			}
+		}
+
+		function findInsertRef(
+			zone: HTMLElement,
+			x: number,
+			y: number,
+		): { ref: Element | null; after: boolean } {
+			const cards = Array.from(
+				zone.querySelectorAll<HTMLElement>(".rank-card"),
+			).filter((c) => c !== drag?.card);
+			let best: HTMLElement | null = null;
+			let bestDist = Infinity;
+			let bestCx = 0;
+			for (const c of cards) {
+				const r = c.getBoundingClientRect();
+				const cx = r.left + r.width / 2;
+				const cy = r.top + r.height / 2;
+				const dist = Math.abs(cy - y) * 3 + Math.abs(cx - x);
+				if (dist < bestDist) {
+					bestDist = dist;
+					best = c;
+					bestCx = cx;
+				}
+			}
+			if (!best) return { ref: null, after: false };
+			return { ref: best, after: x > bestCx };
+		}
+
+		function onPointerMove(e: PointerEvent) {
+			if (!drag) return;
+			const dx = e.clientX - drag.startX;
+			const dy = e.clientY - drag.startY;
+
+			if (!drag.active) {
+				if (Math.hypot(dx, dy) < 6) return;
+				beginDrag(drag.card, e);
+				if (!drag) return;
+			}
+
+			e.preventDefault();
+			drag.ghost.style.left = `${e.clientX - drag.offsetX}px`;
+			drag.ghost.style.top = `${e.clientY - drag.offsetY}px`;
+
+			const under = document.elementFromPoint(e.clientX, e.clientY);
+			const zone = under?.closest<HTMLElement>("[data-drop]") ?? null;
+
+			if (zone !== drag.lastZone) {
+				clearZoneHighlight();
+				drag.lastZone = zone;
+				if (zone) zone.classList.add("drop-active");
+			}
+
+			if (zone) {
+				const { ref, after } = findInsertRef(zone, e.clientX, e.clientY);
+				if (ref) {
+					const next = after ? ref.nextElementSibling : ref;
+					if (drag.marker !== marker || marker.nextElementSibling !== next || marker.parentElement !== zone) {
+						zone.insertBefore(marker, next);
+						drag.marker = marker;
+					}
+				} else {
+					zone.appendChild(marker);
+					drag.marker = marker;
+				}
+			}
+
+			// 靠近视口上下边缘时自动滚动
+			const edge = 70;
+			if (e.clientY < edge) window.scrollBy(0, -12);
+			else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, 12);
+		}
+
+		function endDrag() {
+			if (!drag) return;
+			const { card, ghost, marker: m } = drag;
+			if (drag.active) {
+				if (m && m.parentElement) {
+					m.parentElement.insertBefore(card, m);
+					m.remove();
+				}
+				ghost?.remove();
+			}
+			card.classList.remove("is-dragging");
+			clearZoneHighlight();
+			drag = null;
+			updatePoolCount();
+		}
+
+		document.addEventListener("pointerdown", onPointerDown, {
+			passive: true,
+		});
+		document.addEventListener("pointermove", onPointerMove, {
+			passive: false,
+		});
+		document.addEventListener("pointerup", endDrag);
+		document.addEventListener("pointercancel", endDrag);
+
+		// ── 点击行为 ──────────────────────────────────────
+
+		document.addEventListener("click", (e) => {
+			const t = e.target as HTMLElement;
+
+			// 移除单张卡片
+			const del = t.closest(".rank-card-del");
+			if (del) {
+				del.closest(".rank-card")?.remove();
+				updatePoolCount();
+				return;
+			}
+
+			// 档位工具按钮
+			const toolBtn = t.closest<HTMLElement>(".tier-tool-btn");
+			if (toolBtn) {
+				const label = toolBtn.closest(".tier-label") as HTMLElement;
+				const act = toolBtn.dataset.act;
+				if (act === "remove") {
+					const boardEl = label.parentElement!;
+					const cards = boardEl.querySelectorAll(".rank-card");
+					if (
+						board.querySelectorAll(".tier-row").length <= 1
+					) {
+						return;
+					}
+					cards.forEach((c) => pool.appendChild(c));
+					boardEl.remove();
+					updatePoolCount();
+				} else if (act === "color") {
+					const input = label.querySelector<HTMLInputElement>(
+						".tier-color-input",
+					);
+					input?.click();
+				}
+				return;
+			}
+		});
+
+		// 改颜色
+		document.addEventListener("input", (e) => {
+			const input = (e.target as HTMLElement).closest<HTMLInputElement>(
+				".tier-color-input",
+			);
+			if (!input) return;
+			const label = input.closest(".tier-label") as HTMLElement;
+			label.style.setProperty("--tier-color", input.value);
+		});
+
+		// 标签编辑：回车失焦，粘贴去格式，禁止换行
+		document.addEventListener("keydown", (e) => {
+			const el = (e.target as HTMLElement).closest(".tier-label-text");
+			if (!el) return;
+			if (e.key === "Enter") {
+				e.preventDefault();
+				(el as HTMLElement).blur();
+			}
+		});
+		document.addEventListener("paste", (e) => {
+			const el = (e.target as HTMLElement).closest(".tier-label-text");
+			if (!el) return;
+			e.preventDefault();
+			const text = e.clipboardData?.getData("text/plain") ?? "";
+			document.execCommand("insertText", false, text.replace(/\s+/g, " "));
+		});
+		document.addEventListener("focusout", (e) => {
+			const el = (e.target as HTMLElement).closest<HTMLElement>(
+				".tier-label-text",
+			);
+			if (!el) return;
+			el.textContent = (el.textContent ?? "").replace(/\s+/g, " ").trim() || "未命名";
+		});
+
+		// 双击看大图
+		document.addEventListener("dblclick", (e) => {
+			const t = e.target as HTMLElement;
+			if (t.closest(".rank-card-del")) return;
+			const img = t.closest(".rank-card")?.querySelector("img");
+			if (!img) return;
+			const layer = document.createElement("div");
+			layer.className = "rank-preview";
+			layer.innerHTML = `<img src="${img.src}" alt="">`;
+			layer.addEventListener("click", () => layer.remove());
+			document.body.appendChild(layer);
+		});
+
+		document.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") {
+				document.querySelector(".rank-preview")?.remove();
+			}
+		});
+
+		// ── 工具栏动作 ────────────────────────────────────
+
+		fileInput.addEventListener("change", () => {
+			if (fileInput.files?.length) importFiles(fileInput.files);
+			fileInput.value = "";
+		});
+
+		// 直接把文件拖进页面
+		let dragDepth = 0;
+		let overlay: HTMLElement | null = null;
+
+		window.addEventListener("dragenter", (e) => {
+			if (!e.dataTransfer?.types.includes("Files")) return;
+			dragDepth++;
+			if (!overlay) {
+				overlay = document.createElement("div");
+				overlay.className = "rank-dropzone-overlay";
+				overlay.innerHTML = "<span>松手即可添加图片</span>";
+				document.body.appendChild(overlay);
+			}
+		});
+		window.addEventListener("dragleave", (e) => {
+			if (!e.dataTransfer?.types.includes("Files")) return;
+			dragDepth = Math.max(0, dragDepth - 1);
+			if (dragDepth === 0 && overlay) {
+				overlay.remove();
+				overlay = null;
+			}
+		});
+		window.addEventListener("dragover", (e) => {
+			if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+		});
+		window.addEventListener("drop", (e) => {
+			if (!e.dataTransfer?.types.includes("Files")) return;
+			e.preventDefault();
+			dragDepth = 0;
+			if (overlay) {
+				overlay.remove();
+				overlay = null;
+			}
+			if (e.dataTransfer.files?.length) importFiles(e.dataTransfer.files);
+		});
+
+		sizeSelect.addEventListener("change", () => {
+			app.dataset.size = sizeSelect.value;
+		});
+
+		document
+			.getElementById("rank-add-tier")!
+			.addEventListener("click", () => {
+				const rows = board.querySelectorAll(".tier-row").length;
+				const color = PALETTE[rows % PALETTE.length];
+				const row = createTier("新档位", color);
+				board.appendChild(row);
+				const text = row.querySelector<HTMLElement>(".tier-label-text")!;
+				text.focus();
+				const range = document.createRange();
+				range.selectNodeContents(text);
+				const sel = window.getSelection();
+				sel?.removeAllRanges();
+				sel?.addRange(range);
+			});
+
+		document.getElementById("rank-reset")!.addEventListener("click", () => {
+			for (const card of board.querySelectorAll(".rank-card")) {
+				pool.appendChild(card);
+			}
+			updatePoolCount();
+		});
+
+		document.getElementById("rank-clear")!.addEventListener("click", () => {
+			const total = document.querySelectorAll(".rank-card").length;
+			if (total === 0) return;
+			if (!confirm(`确定清空全部 ${total} 张图片？（只在本页生效，不影响你的原图）`))
+				return;
+			for (const card of document.querySelectorAll(".rank-card")) card.remove();
+			updatePoolCount();
+		});
+
+		// ── 导出 PNG（Canvas 自绘，无需第三方库）──────────
+
+		function roundRectPath(
+			ctx: CanvasRenderingContext2D,
+			x: number,
+			y: number,
+			w: number,
+			h: number,
+			r: number,
+		) {
+			const rr = Math.min(r, w / 2, h / 2);
+			ctx.beginPath();
+			ctx.moveTo(x + rr, y);
+			ctx.arcTo(x + w, y, x + w, y + h, rr);
+			ctx.arcTo(x + w, y + h, x, y + h, rr);
+			ctx.arcTo(x, y + h, x, y, rr);
+			ctx.arcTo(x, y, x + w, y, rr);
+			ctx.closePath();
+		}
+
+		function withAlpha(hex: string, alpha: number): string {
+			const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+			if (!m) return `rgba(200,200,200,${alpha})`;
+			const [r, g, b] = [
+				parseInt(m[1], 16),
+				parseInt(m[2], 16),
+				parseInt(m[3], 16),
+			];
+			return `rgba(${r},${g},${b},${alpha})`;
+		}
+
+		function drawCover(
+			ctx: CanvasRenderingContext2D,
+			img: HTMLImageElement,
+			x: number,
+			y: number,
+			w: number,
+			h: number,
+			r: number,
+		) {
+			ctx.save();
+			roundRectPath(ctx, x, y, w, h, r);
+			ctx.clip();
+			const nw = img.naturalWidth || w;
+			const nh = img.naturalHeight || h;
+			const scale = Math.max(w / nw, h / nh);
+			const dw = nw * scale;
+			const dh = nh * scale;
+			try {
+				ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+			} catch {
+				// 图片异常就画个占位，不中断导出
+				ctx.fillStyle = "#ddd";
+				ctx.fillRect(x, y, w, h);
+			}
+			ctx.restore();
+		}
+
+		async function exportPng() {
+			const rowsData = Array.from(
+				board.querySelectorAll<HTMLElement>(".tier-row"),
+			).map((row) => ({
+				name:
+					row.querySelector(".tier-label-text")?.textContent?.trim() ||
+					"未命名",
+				color:
+					row
+						.querySelector<HTMLElement>(".tier-label")
+						?.style.getPropertyValue("--tier-color") || "#cccccc",
+				imgs: Array.from(
+					row.querySelectorAll<HTMLImageElement>(".rank-card img"),
+				),
+			}));
+
+			if (!rowsData.some((r) => r.imgs.length)) {
+				alert("还没有排任何卡片，先添加图片吧。");
+				return;
+			}
+
+			// 等图片解码完成
+			await Promise.all(
+				rowsData.flatMap((r) =>
+					r.imgs.map((img) =>
+						img.complete && img.naturalWidth
+							? Promise.resolve()
+							: new Promise<void>((res) => {
+									img.onload = () => res();
+									img.onerror = () => res();
+								}),
+					),
+				),
+			);
+
+			const S = 96; // 导出时卡片边长
+			const GAP = 10;
+			const LABEL_W = 132;
+			const PAD = 16;
+			const OUTER = 26;
+			const SCALE = 2;
+
+			const maxCount = Math.max(1, ...rowsData.map((r) => r.imgs.length));
+			const cols = Math.min(maxCount, 8);
+			const boardW = LABEL_W + PAD * 2 + cols * (S + GAP) - GAP;
+			const W = boardW + OUTER * 2;
+
+			const rowH = (n: number) => {
+				const lines = Math.max(1, Math.ceil(n / cols));
+				const inner = lines * S + (lines - 1) * GAP + PAD * 2;
+				return Math.max(S + PAD * 2, inner);
+			};
+
+			const H =
+				OUTER * 2 +
+				rowsData.reduce((s, r) => s + rowH(r.imgs.length), 0) +
+				GAP * Math.max(0, rowsData.length - 1);
+
+			const canvas = document.createElement("canvas");
+			canvas.width = W * SCALE;
+			canvas.height = H * SCALE;
+			const ctx = canvas.getContext("2d")!;
+			ctx.scale(SCALE, SCALE);
+
+			// 背景
+			ctx.fillStyle = "#ffffff";
+			ctx.fillRect(0, 0, W, H);
+
+			let y = OUTER;
+			for (const row of rowsData) {
+				const h = rowH(row.imgs.length);
+
+				// 整行浅色底
+				ctx.fillStyle = withAlpha(row.color, 0.16);
+				roundRectPath(ctx, OUTER, y, boardW, h, 10);
+				ctx.fill();
+
+				// 左侧标签块
+				ctx.save();
+				roundRectPath(ctx, OUTER, y, boardW, h, 10);
+				ctx.clip();
+				ctx.fillStyle = row.color;
+				ctx.fillRect(OUTER, y, LABEL_W, h);
+				ctx.restore();
+
+				// 标签文字
+				ctx.fillStyle = "#1b1b1b";
+				ctx.font =
+					'700 30px "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif';
+				ctx.textAlign = "center";
+				ctx.textBaseline = "middle";
+				const labelText =
+					row.name.length > 6 ? `${row.name.slice(0, 6)}…` : row.name;
+				ctx.fillText(labelText, OUTER + LABEL_W / 2, y + h / 2, LABEL_W - 14);
+
+				// 卡片
+				const startX = OUTER + LABEL_W + PAD;
+				row.imgs.forEach((img, i) => {
+					const col = i % cols;
+					const line = Math.floor(i / cols);
+					const cx = startX + col * (S + GAP);
+					const cy = y + PAD + line * (S + GAP);
+					drawCover(ctx, img, cx, cy, S, S, 8);
+				});
+
+				y += h + GAP;
+			}
+
+			const blob = await new Promise<Blob | null>((res) =>
+				canvas.toBlob(res, "image/png"),
+			);
+			if (!blob) {
+				alert("导出失败，请重试。");
+				return;
+			}
+			const d = new Date();
+			const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+			const a = document.createElement("a");
+			a.href = URL.createObjectURL(blob);
+			a.download = `tier-list-${stamp}.png`;
+			a.click();
+			setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+		}
+
+		const exportBtn = document.getElementById("rank-export")!;
+		exportBtn.addEventListener("click", () => {
+			exportBtn.setAttribute("disabled", "true");
+			exportPromise().finally(() => {
+				exportBtn.removeAttribute("disabled");
+			});
+		});
+
+		async function exportPromise() {
+			try {
+				await exportPng();
+			} catch (err) {
+				console.error("[rank-tool] 导出失败", err);
+				alert("导出失败，请换个浏览器或减少图片数量再试。");
+			}
+		}
+
+		// ── 初始化 ────────────────────────────────────────
+
+		buildDefaultTiers();
+		updatePoolCount();
+	}
+    </script>
+  </body>
+</html>

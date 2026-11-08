@@ -1,0 +1,167 @@
+/* 独立工具页的基础样式：自包含，不依赖博客布局与主题变量 */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+:root {
+	--topbar-h: 3.15rem;
+
+	/* 覆盖博客主题变量，让 rank-tool.css 可以原样复用 */
+	--primary: #4a90d9;
+	--card-bg: #ffffff;
+	--line-divider: rgba(0, 0, 0, 0.09);
+	--content-meta: rgba(0, 0, 0, 0.58);
+	--btn-regular-bg: #eef1f6;
+	--btn-regular-bg-hover: #e2e7f0;
+	--btn-regular-bg-active: #d5dce8;
+	--btn-content: #46536a;
+	--btn-plain-bg-hover: #f0f3f8;
+	--muted: #e9edf3;
+	--deep-text: #1b2330;
+
+	--tool-bg: #f5f7fa;
+	--tool-text: #1b2330;
+	--tool-topbar-bg: rgba(255, 255, 255, 0.84);
+
+	color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--primary: #6ba7e8;
+		--card-bg: #1e2229;
+		--line-divider: rgba(255, 255, 255, 0.09);
+		--content-meta: rgba(255, 255, 255, 0.6);
+		--btn-regular-bg: #2a2f38;
+		--btn-regular-bg-hover: #333944;
+		--btn-regular-bg-active: #3c4350;
+		--btn-content: #b9c4d4;
+		--btn-plain-bg-hover: #262b33;
+		--muted: #2a2f38;
+		--deep-text: #eef2f7;
+
+		--tool-bg: #14171c;
+		--tool-text: #eef2f7;
+		--tool-topbar-bg: rgba(20, 23, 28, 0.86);
+	}
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	min-height: 100dvh;
+	background-color: var(--tool-bg);
+	color: var(--tool-text);
+	font-family:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+		"Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+	font-size: 15px;
+	line-height: 1.5;
+	-webkit-text-size-adjust: 100%;
+}
+
+/* ── 顶栏 ───────────────────────────────────────────── */
+
+.tool-topbar {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	height: var(--topbar-h);
+	padding: 0 clamp(0.7rem, 3vw, 1.6rem);
+	background-color: var(--tool-topbar-bg);
+	border-bottom: 1px solid var(--line-divider);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+}
+
+.tool-back {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	flex-shrink: 0;
+	padding: 0.3rem 0.55rem;
+	border-radius: 0.45rem;
+	color: var(--content-meta);
+	font-size: 0.82rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition:
+		background-color 0.16s ease,
+		color 0.16s ease;
+}
+
+.tool-back:hover {
+	background-color: var(--btn-plain-bg-hover);
+	color: var(--primary);
+}
+
+.tool-back svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+.tool-title {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: var(--deep-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+}
+
+.tool-chip {
+	margin-left: auto;
+	flex-shrink: 0;
+	padding: 0.2rem 0.55rem;
+	border-radius: 999px;
+	background-color: var(--btn-regular-bg);
+	color: var(--btn-content);
+	font-size: 0.72rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/* ── 主体 ───────────────────────────────────────────── */
+
+.tool-main {
+	padding: clamp(0.75rem, 2.5vw, 1.6rem);
+	padding-bottom: calc(clamp(0.75rem, 2.5vw, 1.6rem) + env(safe-area-inset-bottom, 0px));
+	max-width: 1120px;
+	margin: 0 auto;
+}
+
+/* 独立页没有博客顶栏，工具工具栏只需贴在顶栏下方 */
+.tool-main .rank-toolbar {
+	top: var(--topbar-h);
+}
+
+.tool-foot {
+	max-width: 1120px;
+	margin: 0 auto;
+	padding: 0.4rem clamp(0.75rem, 2.5vw, 1.6rem) 1.6rem;
+	color: var(--content-meta);
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+@media (max-width: 480px) {
+	.tool-title {
+		font-size: 0.86rem;
+	}
+
+	.tool-chip {
+		display: none;
+	}
+}

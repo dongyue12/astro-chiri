@@ -21,6 +21,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 		children: [LinkPresets.Archive, LinkPresets.Categories, LinkPresets.Tags, LinkPresets.Series],
 	});
 
+	// 工具箱：external 置 true 让链接在新标签页打开，不打断当前阅读
+	links.push(LinkPresets.Tools);
+
 	links.push({
 		name: "社交",
 		url: "#",
@@ -52,6 +55,12 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		name: "主页",
 		url: "/",
 		icon: "material-symbols:home",
+	},
+	Tools: {
+		name: "工具箱",
+		url: "/tools/",
+		icon: "material-symbols:handyman",
+		external: true,
 	},
 	Archive: {
 		name: "归档",

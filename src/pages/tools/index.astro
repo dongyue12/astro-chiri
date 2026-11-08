@@ -1,0 +1,91 @@
+---
+import { Icon } from "astro-icon/components";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/pages/common.css";
+import "@/styles/pages/tools.css";
+
+const title = "工具箱";
+const description =
+	"一些自己常用的小工具，全部在浏览器本地运行，不上传任何数据。";
+
+type ToolCard = {
+	name: string;
+	desc: string;
+	url: string;
+	icon: string;
+	tags: string[];
+};
+
+const tools: ToolCard[] = [
+	{
+		name: "从夯到拉排名",
+		desc: "把图片拖进「夯」到「拉」的等级条，随手排出强度榜，一键导出成图。适合给游戏、番剧、外卖排个序。",
+		url: "/tools/rank/",
+		icon: "material-symbols:leaderboard",
+		tags: ["拖拽排序", "导出 PNG", "支持手机"],
+	},
+	{
+		name: "图片处理",
+		desc: "批量转 WebP / JPEG / PNG，改宽度、旋转翻转、调亮度对比度，一次设置全部导出。发博客前处理配图很顺手。",
+		url: "/tools/image/",
+		icon: "material-symbols:image",
+		tags: ["格式转换", "批量导出", "不用上传"],
+	},
+];
+---
+
+<MainGridLayout title={title} description={description}>
+  <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
+    <div class="card-base z-10 px-4 py-5 sm:px-9 sm:py-6 relative w-full min-w-0">
+      <div class="mb-4">
+        <div class="page-heading">
+          <div class="page-icon" aria-hidden="true">
+            <Icon name="material-symbols:handyman" />
+          </div>
+          <div>
+            <h2>{title}</h2>
+            <p>{description}</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="tools-intro">
+        点开会在新标签页里打开，不影响你正在读的文章。所有处理都在你自己的浏览器里完成，图片不会离开这台设备。
+      </p>
+
+      <div class="tools-grid">
+        {
+          tools.map((tool) => (
+            <a
+              class="tool-card"
+              href={tool.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <div class="tool-card-top">
+                <div class="tool-card-icon">
+                  <Icon name={tool.icon} />
+                </div>
+                <div class="tool-card-name">{tool.name}</div>
+              </div>
+              <div class="tool-card-desc">{tool.desc}</div>
+              <div class="tool-card-tags">
+                {tool.tags.map((tag) => (
+                  <span class="tool-card-tag">{tag}</span>
+                ))}
+              </div>
+              <Icon
+                name="material-symbols:open-in-new"
+                class="tool-card-arrow"
+              />
+            </a>
+          ))
+        }
+        <div class="tool-card-empty">
+          <Icon name="material-symbols:add-circle-outline" />
+          <span>更多工具慢慢补上</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</MainGridLayout>

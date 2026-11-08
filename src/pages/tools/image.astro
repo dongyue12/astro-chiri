@@ -1,0 +1,703 @@
+---
+import "@/styles/pages/rank-standalone.css";
+import "@/styles/pages/image-tool.css";
+
+const title = "图片处理";
+const description =
+	"在线做图片格式转换、缩放、旋转翻转与亮度调整，支持批量导出。全部在浏览器本地完成，图片不会上传。";
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>{title} · 工具箱</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+  </head>
+  <body>
+    <header class="tool-topbar">
+      <a class="tool-back" href="/tools/">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5Z"></path>
+        </svg>
+        工具箱
+      </a>
+      <h1 class="tool-title">{title}</h1>
+      <span class="tool-chip">图片不上传</span>
+    </header>
+
+    <main class="tool-main">
+      <div class="img-app">
+        <!-- 左：上传与列表 -->
+        <section class="img-main">
+          <div class="img-drop" id="img-drop" role="button" tabindex="0">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M19 13v6H5v-6H3v6q0 .825.588 1.413Q4.175 21 5 21h14q.825 0 1.413-.587Q21 19.825 21 19v-6h-2ZM12 3 7 8l1.4 1.45 2.6-2.6V16h2V6.85l2.6 2.6L17 8l-5-5Z"
+              ></path>
+            </svg>
+            <strong>点击选择图片，或直接拖进来</strong>
+            <span>支持 PNG / JPEG / WebP / GIF / AVIF，可一次多选</span>
+            <small>所有处理都在你的浏览器里完成，不会上传到服务器</small>
+          </div>
+          <input id="img-input" type="file" accept="image/*" multiple hidden />
+
+          <div class="img-list" id="img-list"></div>
+        </section>
+
+        <!-- 右：设置面板 -->
+        <aside class="img-panel">
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>输出格式</span>
+              <span class="panel-val" id="val-format">原格式</span>
+            </div>
+            <div class="seg" id="seg-format">
+              <button type="button" data-format="original" aria-pressed="true">
+                原格式
+              </button>
+              <button type="button" data-format="webp" aria-pressed="false">
+                WebP
+              </button>
+              <button type="button" data-format="jpeg" aria-pressed="false">
+                JPEG
+              </button>
+              <button type="button" data-format="png" aria-pressed="false">
+                PNG
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-section" id="quality-section">
+            <div class="panel-title">
+              <span>质量</span>
+              <span class="panel-val" id="val-quality">85%</span>
+            </div>
+            <div class="slider-row">
+              <input
+                type="range"
+                id="in-quality"
+                min="10"
+                max="100"
+                step="1"
+                value="85"
+                aria-label="输出质量"
+              />
+            </div>
+            <div class="panel-note" id="quality-note">
+              JPEG / WebP 有效，PNG 为无损
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>输出宽度</span>
+              <span class="panel-val" id="val-width">原始</span>
+            </div>
+            <div class="num-row">
+              <input
+                type="number"
+                id="in-width"
+                min="1"
+                step="1"
+                placeholder="留空 = 原始宽度"
+              />
+              <span class="num-suffix">px</span>
+            </div>
+            <div class="panel-note">高度按原比例自动计算，旋转后自动互换</div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-title"><span>旋转与翻转</span></div>
+            <div class="btn-group">
+              <button class="icon-btn" type="button" id="btn-rot-l">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M7.1 16.9q-2-2-2-4.9t2-4.9Q9.1 5 12 5h.2L9.6 2.4 11 1l4.9 5L11 11l-1.4-1.4L12.2 7H12q-2 0-3.5 1.5T7 12q0 2 1.5 3.5T12 17v2q-2.9 0-4.9-2.1Z"></path>
+                </svg>
+                左转
+              </button>
+              <button class="icon-btn" type="button" id="btn-rot-r">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M16.9 16.9q2-2 2-4.9t-2-4.9Q14.9 5 12 5h-.2l2.6-2.6L13 1 8.1 6l4.9 5 1.4-1.4L11.8 7h.2q2 0 3.5 1.5T17 12q0 2-1.5 3.5T12 17v2q2.9 0 4.9-2.1Z"></path>
+                </svg>
+                右转
+              </button>
+            </div>
+            <div class="btn-group">
+              <button class="icon-btn" type="button" id="btn-flip-h" aria-pressed="false">
+                水平翻转
+              </button>
+              <button class="icon-btn" type="button" id="btn-flip-v" aria-pressed="false">
+                垂直翻转
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>亮度</span>
+              <span class="panel-val" id="val-bright">100%</span>
+            </div>
+            <div class="slider-row">
+              <input type="range" id="in-bright" min="20" max="200" value="100" aria-label="亮度" />
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>对比度</span>
+              <span class="panel-val" id="val-contrast">100%</span>
+            </div>
+            <div class="slider-row">
+              <input type="range" id="in-contrast" min="20" max="200" value="100" aria-label="对比度" />
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-title">
+              <span>饱和度</span>
+              <span class="panel-val" id="val-saturate">100%</span>
+            </div>
+            <div class="slider-row">
+              <input type="range" id="in-saturate" min="0" max="200" value="100" aria-label="饱和度" />
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <button class="act-btn act-btn-primary" type="button" id="btn-export-all" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 15.575q-.2 0-.375-.062-.175-.063-.325-.213L7.4 11.4l1.4-1.4 2.2 2.2V4h2v8.2l2.2-2.2 1.4 1.4-3.9 3.9q-.15.15-.325.213-.175.062-.375.062ZM5 20q-.825 0-1.412-.587Q3 18.825 3 18v-3h2v3h14v-3h2v3q0 .825-.587 1.413Q19.825 20 19 20H5Z"></path>
+              </svg>
+              下载全部
+            </button>
+            <button class="act-btn act-btn-ghost" type="button" id="btn-reset">
+              重置设置
+            </button>
+          </div>
+          <div class="panel-status" id="status">还没有添加图片</div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="tool-foot">
+      格式转换 · 缩放 · 旋转翻转 · 亮度对比度 · 批量导出
+    </footer>
+
+    <script>
+      const ICON_X = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.4 19 5 17.6 10.6 12 5 6.4 6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19Z"/></svg>`;
+
+      const EXT = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif" };
+
+      const DEFAULTS = {
+        format: "original",
+        quality: 85,
+        width: null,
+        rotate: 0,
+        flipH: false,
+        flipV: false,
+        brightness: 100,
+        contrast: 100,
+        saturate: 100,
+      };
+
+      const state = { ...DEFAULTS, items: [], seq: 0 };
+
+      const drop = document.getElementById("img-drop");
+      const input = document.getElementById("img-input");
+      const listEl = document.getElementById("img-list");
+      const statusEl = document.getElementById("status");
+      const exportBtn = document.getElementById("btn-export-all");
+
+      // ── 基础绘制 ──────────────────────────────────────
+
+      function outSize(item) {
+        let w = item.w0;
+        let h = item.h0;
+        if (state.width && state.width > 0) {
+          const k = state.width / w;
+          w = state.width;
+          h = h * k;
+        }
+        w = Math.max(1, Math.round(w));
+        h = Math.max(1, Math.round(h));
+        if (state.rotate % 180 !== 0) {
+          const t = w;
+          w = h;
+          h = t;
+        }
+        return { w, h };
+      }
+
+      function drawItem(canvas, item, maxEdge) {
+        const { w, h } = outSize(item);
+        const s = maxEdge ? Math.min(1, maxEdge / Math.max(w, h)) : 1;
+        const cw = Math.max(1, Math.round(w * s));
+        const ch = Math.max(1, Math.round(h * s));
+        canvas.width = cw;
+        canvas.height = ch;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, cw, ch);
+
+        const rotated = state.rotate % 180 !== 0;
+        const bw = rotated ? ch : cw;
+        const bh = rotated ? cw : ch;
+
+        ctx.save();
+        ctx.filter = `brightness(${state.brightness}%) contrast(${state.contrast}%) saturate(${state.saturate}%)`;
+        ctx.translate(cw / 2, ch / 2);
+        ctx.rotate((state.rotate * Math.PI) / 180);
+        ctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
+        ctx.drawImage(item.bitmap, -bw / 2, -bh / 2, bw, bh);
+        ctx.restore();
+      }
+
+      function mimeOf(item) {
+        if (state.format === "original") {
+          if (item.mime === "image/png" || item.mime === "image/webp") {
+            return item.mime;
+          }
+          return "image/jpeg";
+        }
+        return "image/" + state.format;
+      }
+
+      // ── 列表渲染 ──────────────────────────────────────
+
+      function updateCardMeta(item) {
+        const orig = item.el.querySelector(".d-orig");
+        const out = item.el.querySelector(".d-out");
+        const o = outSize(item);
+        const ext = EXT[mimeOf(item)] || "png";
+        if (orig) orig.textContent = `${item.w0}×${item.h0} → `;
+        if (out) out.textContent = `${o.w}×${o.h} · ${ext}`;
+      }
+
+      function renderItem(item) {
+        const card = document.createElement("div");
+        card.className = "img-card";
+        card.dataset.id = item.id;
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "img-thumb";
+        canvas.title = "点击查看大图";
+
+        const meta = document.createElement("div");
+        meta.className = "img-meta";
+        const name = document.createElement("div");
+        name.className = "img-name";
+        name.textContent = item.name;
+        name.title = item.name;
+        const dim = document.createElement("div");
+        dim.className = "img-dim";
+        // 拆成两段：窄屏只保留输出尺寸与格式，避免被省略号截断
+        const orig = document.createElement("span");
+        orig.className = "d-orig";
+        const out = document.createElement("span");
+        out.className = "d-out";
+        dim.append(orig, out);
+        meta.append(name, dim);
+
+        const del = document.createElement("button");
+        del.className = "img-del";
+        del.type = "button";
+        del.setAttribute("aria-label", "移除这张图片");
+        del.innerHTML = ICON_X;
+
+        card.append(canvas, meta, del);
+        item.el = card;
+        item.canvas = canvas;
+
+        drawItem(canvas, item, 300);
+        updateCardMeta(item);
+        return card;
+      }
+
+      let rafId = 0;
+      function redrawAll() {
+        if (!state.items.length) {
+          exportBtn.disabled = true;
+          statusEl.textContent = "还没有添加图片";
+          return;
+        }
+        for (const item of state.items) {
+          if (item.canvas) drawItem(item.canvas, item, 300);
+          updateCardMeta(item);
+        }
+        exportBtn.disabled = false;
+        statusEl.textContent = `共 ${state.items.length} 张图片`;
+      }
+
+      function scheduleRedraw() {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(redrawAll);
+      }
+
+      // ── 载入图片 ──────────────────────────────────────
+
+      async function decode(file) {
+        try {
+          return await createImageBitmap(file, { imageOrientation: "from-image" });
+        } catch {
+          try {
+            return await createImageBitmap(file);
+          } catch {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.src = url;
+            await img.decode();
+            const bmp = await createImageBitmap(img);
+            URL.revokeObjectURL(url);
+            return bmp;
+          }
+        }
+      }
+
+      let loading = false;
+      async function addFiles(files) {
+        if (loading) return;
+        loading = true;
+        statusEl.textContent = "正在读取图片…";
+        const added = [];
+        for (const file of Array.from(files)) {
+          if (!file.type.startsWith("image/")) continue;
+          try {
+            const bitmap = await decode(file);
+            const item = {
+              id: `i${++state.seq}`,
+              name: file.name,
+              mime: file.type || "image/png",
+              bitmap,
+              w0: bitmap.width,
+              h0: bitmap.height,
+            };
+            state.items.push(item);
+            listEl.appendChild(renderItem(item));
+            added.push(item);
+          } catch (err) {
+            console.warn("[image-tool] 无法读取", file.name, err);
+          }
+        }
+        loading = false;
+        scheduleRedraw();
+        if (!added.length && state.items.length === 0) {
+          statusEl.textContent = "没有读取到可用的图片";
+        }
+      }
+
+      // ── 面板交互 ──────────────────────────────────────
+
+      function syncFormatUI() {
+        for (const btn of document.querySelectorAll("#seg-format button")) {
+          btn.setAttribute(
+            "aria-pressed",
+            String(btn.dataset.format === state.format),
+          );
+        }
+        const label = { original: "原格式", webp: "WebP", jpeg: "JPEG", png: "PNG" };
+        document.getElementById("val-format").textContent =
+          label[state.format] || "原格式";
+
+        const lossy = state.format === "jpeg" || state.format === "webp";
+        const qInput = document.getElementById("in-quality");
+        qInput.disabled = !lossy;
+        document.getElementById("quality-section").style.opacity = lossy ? "1" : "0.55";
+        document.getElementById("quality-note").textContent = lossy
+          ? "数值越低体积越小"
+          : state.format === "png"
+            ? "PNG 为无损格式，忽略质量"
+            : "原格式时仅 JPEG / WebP 生效";
+      }
+
+      function syncWidthUI() {
+        const el = document.getElementById("val-width");
+        if (!state.width) {
+          el.textContent = "原始";
+        } else {
+          const first = state.items[0];
+          el.textContent = first
+            ? `${state.width} × ${outSize({ ...first, w0: first.w0, h0: first.h0 }).h}`
+            : `${state.width}px`;
+        }
+      }
+
+      document.getElementById("seg-format").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-format]");
+        if (!btn) return;
+        state.format = btn.dataset.format;
+        syncFormatUI();
+        scheduleRedraw();
+      });
+
+      document.getElementById("in-quality").addEventListener("input", (e) => {
+        state.quality = Number(e.target.value);
+        document.getElementById("val-quality").textContent = `${state.quality}%`;
+      });
+
+      document.getElementById("in-width").addEventListener("input", (e) => {
+        const v = Number(e.target.value);
+        state.width = v > 0 ? Math.round(v) : null;
+        syncWidthUI();
+        scheduleRedraw();
+      });
+
+      document.getElementById("btn-rot-l").addEventListener("click", () => {
+        state.rotate = (state.rotate + 270) % 360;
+        scheduleRedraw();
+        syncWidthUI();
+      });
+
+      document.getElementById("btn-rot-r").addEventListener("click", () => {
+        state.rotate = (state.rotate + 90) % 360;
+        scheduleRedraw();
+        syncWidthUI();
+      });
+
+      document.getElementById("btn-flip-h").addEventListener("click", (e) => {
+        state.flipH = !state.flipH;
+        e.currentTarget.setAttribute("aria-pressed", String(state.flipH));
+        scheduleRedraw();
+      });
+
+      document.getElementById("btn-flip-v").addEventListener("click", (e) => {
+        state.flipV = !state.flipV;
+        e.currentTarget.setAttribute("aria-pressed", String(state.flipV));
+        scheduleRedraw();
+      });
+
+      for (const [id, key, outId] of [
+        ["in-bright", "brightness", "val-bright"],
+        ["in-contrast", "contrast", "val-contrast"],
+        ["in-saturate", "saturate", "val-saturate"],
+      ]) {
+        document.getElementById(id).addEventListener("input", (e) => {
+          state[key] = Number(e.target.value);
+          document.getElementById(outId).textContent = `${state[key]}%`;
+          scheduleRedraw();
+        });
+      }
+
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        Object.assign(state, DEFAULTS);
+        document.getElementById("in-quality").value = "85";
+        document.getElementById("val-quality").textContent = "85%";
+        document.getElementById("in-width").value = "";
+        document.getElementById("in-bright").value = "100";
+        document.getElementById("in-contrast").value = "100";
+        document.getElementById("in-saturate").value = "100";
+        document.getElementById("val-bright").textContent = "100%";
+        document.getElementById("val-contrast").textContent = "100%";
+        document.getElementById("val-saturate").textContent = "100%";
+        document.getElementById("btn-flip-h").setAttribute("aria-pressed", "false");
+        document.getElementById("btn-flip-v").setAttribute("aria-pressed", "false");
+        syncFormatUI();
+        syncWidthUI();
+        scheduleRedraw();
+        statusEl.textContent = "已重置设置";
+      });
+
+      // ── 上传交互 ──────────────────────────────────────
+
+      drop.addEventListener("click", () => input.click());
+      drop.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          input.click();
+        }
+      });
+
+      input.addEventListener("change", () => {
+        if (input.files?.length) addFiles(input.files);
+        input.value = "";
+      });
+
+      listEl.addEventListener("click", (e) => {
+        const t = e.target;
+        const del = t.closest(".img-del");
+        if (del) {
+          const card = del.closest(".img-card");
+          const id = card?.dataset.id;
+          const idx = state.items.findIndex((i) => i.id === id);
+          if (idx >= 0) {
+            state.items[idx].bitmap.close?.();
+            state.items.splice(idx, 1);
+          }
+          card?.remove();
+          scheduleRedraw();
+          return;
+        }
+        const canvas = t.closest(".img-thumb");
+        if (canvas) {
+          const id = canvas.closest(".img-card")?.dataset.id;
+          const item = state.items.find((i) => i.id === id);
+          if (item) openLightbox(item);
+        }
+      });
+
+      // 页面级拖入
+      let dragDepth = 0;
+      let overlay = null;
+      window.addEventListener("dragenter", (e) => {
+        if (!e.dataTransfer?.types.includes("Files")) return;
+        dragDepth++;
+        drop.classList.add("is-over");
+        if (!overlay) {
+          overlay = document.createElement("div");
+          overlay.className = "img-drop-overlay";
+          overlay.innerHTML = "<span>松手即可添加图片</span>";
+          document.body.appendChild(overlay);
+        }
+      });
+      window.addEventListener("dragleave", (e) => {
+        if (!e.dataTransfer?.types.includes("Files")) return;
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) {
+          drop.classList.remove("is-over");
+          overlay?.remove();
+          overlay = null;
+        }
+      });
+      window.addEventListener("dragover", (e) => {
+        if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+      });
+      window.addEventListener("drop", (e) => {
+        if (!e.dataTransfer?.types.includes("Files")) return;
+        e.preventDefault();
+        dragDepth = 0;
+        drop.classList.remove("is-over");
+        overlay?.remove();
+        overlay = null;
+        if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+      });
+
+      // ── 大图预览 ──────────────────────────────────────
+
+      function openLightbox(item) {
+        const layer = document.createElement("div");
+        layer.className = "img-lightbox";
+
+        const canvas = document.createElement("canvas");
+        drawItem(canvas, item, 1600);
+
+        const bar = document.createElement("div");
+        bar.className = "img-lightbox-bar";
+        const size = outSize(item);
+        const info = document.createElement("span");
+        info.textContent = `${item.name} · ${size.w}×${size.h} · ${EXT[mimeOf(item)] || "png"}`;
+        const dl = document.createElement("button");
+        dl.type = "button";
+        dl.textContent = "下载这张";
+        dl.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          await exportOne(item);
+        });
+        const close = document.createElement("button");
+        close.type = "button";
+        close.textContent = "关闭";
+        close.addEventListener("click", () => layer.remove());
+        bar.append(info, dl, close);
+
+        layer.append(canvas, bar);
+        layer.addEventListener("click", (e) => {
+          if (e.target === layer) layer.remove();
+        });
+        document.body.appendChild(layer);
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") document.querySelector(".img-lightbox")?.remove();
+      });
+
+      // ── 导出 ──────────────────────────────────────────
+
+      function toBlob(canvas, mime, quality) {
+        return new Promise((resolve, reject) => {
+          canvas.toBlob(
+            (b) => (b ? resolve(b) : reject(new Error("toBlob 返回空"))),
+            mime,
+            mime === "image/png" ? undefined : quality / 100,
+          );
+        });
+      }
+
+      async function renderBlob(item) {
+        const canvas = document.createElement("canvas");
+        drawItem(canvas, item, null);
+        const mime = mimeOf(item);
+
+        if (mime === "image/jpeg") {
+          // JPEG 没有透明通道，先铺白底，否则透明区域会变黑
+          const flat = document.createElement("canvas");
+          flat.width = canvas.width;
+          flat.height = canvas.height;
+          const fctx = flat.getContext("2d");
+          fctx.fillStyle = "#ffffff";
+          fctx.fillRect(0, 0, flat.width, flat.height);
+          fctx.drawImage(canvas, 0, 0);
+          return { blob: await toBlob(flat, mime, state.quality), mime };
+        }
+        return { blob: await toBlob(canvas, mime, state.quality), mime };
+      }
+
+      function baseName(name) {
+        return name.replace(/\.[^./\\]+$/, "") || "image";
+      }
+
+      function saveBlob(blob, filename) {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 6000);
+      }
+
+      async function exportOne(item) {
+        statusEl.textContent = "正在导出…";
+        try {
+          const { blob, mime } = await renderBlob(item);
+          const ext = EXT[mime] || "png";
+          saveBlob(blob, `${baseName(item.name)}.${ext}`);
+          statusEl.textContent = `已导出 ${(blob.size / 1024).toFixed(0)} KB`;
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = "导出失败，请重试";
+        }
+      }
+
+      exportBtn.addEventListener("click", async () => {
+        if (!state.items.length) return;
+        exportBtn.disabled = true;
+        const total = state.items.length;
+        for (let i = 0; i < total; i++) {
+          const item = state.items[i];
+          statusEl.textContent = `正在导出 ${i + 1}/${total}…`;
+          try {
+            const { blob, mime } = await renderBlob(item);
+            const ext = EXT[mime] || "png";
+            saveBlob(blob, `${baseName(item.name)}.${ext}`);
+          } catch (err) {
+            console.warn("[image-tool] 导出失败", item.name, err);
+          }
+          // 多张连续下载之间留间隔，避免浏览器拦截
+          if (i < total - 1) await new Promise((r) => setTimeout(r, 320));
+        }
+        statusEl.textContent = `已导出 ${total} 张`;
+        exportBtn.disabled = false;
+      });
+
+      // ── 初始化 ────────────────────────────────────────
+
+      syncFormatUI();
+      syncWidthUI();
+    </script>
+  </body>
+</html>
