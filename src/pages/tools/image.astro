@@ -273,7 +273,7 @@ const description =
             <div class="panel-page" data-page="draw" hidden>
               <div class="panel-section">
                 <div class="panel-title"><span>工具</span></div>
-                <div class="draw-tools" data-role="tools">
+                <div class="draw-tools draw-tools-grid" data-role="tools">
                   <button class="draw-tool" type="button" data-tool="select" aria-pressed="true">
                     选择
                   </button>
@@ -288,6 +288,15 @@ const description =
                   </button>
                   <button class="draw-tool" type="button" data-tool="bucket" aria-pressed="false">
                     填色
+                  </button>
+                  <button class="draw-tool" type="button" data-tool="mosaic" aria-pressed="false">
+                    马赛克
+                  </button>
+                  <button class="draw-tool" type="button" data-tool="blur" aria-pressed="false">
+                    模糊
+                  </button>
+                  <button class="draw-tool" type="button" data-tool="cut" aria-pressed="false">
+                    去背景
                   </button>
                 </div>
               </div>
@@ -360,9 +369,9 @@ const description =
                 <div class="panel-note">点画布放一个默认大小的形状，再拖四角缩放</div>
               </div>
 
-              <div class="panel-section" data-show="pen" hidden>
+              <div class="panel-section" data-show="pen mosaic blur" hidden>
                 <div class="panel-title">
-                  <span>画笔粗细</span>
+                  <span>笔触大小</span>
                   <span class="panel-val" data-val="brush"></span>
                 </div>
                 <div class="draw-field">
@@ -374,16 +383,44 @@ const description =
                     step="1"
                     value="8"
                     data-role="brush"
-                    aria-label="画笔粗细"
+                    aria-label="笔触大小"
                   />
                 </div>
-                <div class="panel-note">按住直接画，松手后整笔可以拖动</div>
+                <div class="panel-note">
+                  按住拖动；马赛克和模糊涂过的地方按笔触大小成片处理
+                </div>
               </div>
 
               <div class="panel-section" data-show="bucket" hidden>
                 <div class="panel-title"><span>填色</span></div>
                 <div class="panel-note">
                   点图片上连成一片的颜色区域，填成「颜色 1」。只填底图，文字和形状不受影响
+                </div>
+              </div>
+
+              <div class="panel-section" data-show="cut" hidden>
+                <div class="panel-title">
+                  <span>去背景</span>
+                  <span class="panel-val" data-val="cutTol"></span>
+                </div>
+                <div class="draw-field">
+                  <span class="draw-note">容差</span>
+                  <input
+                    class="draw-slider"
+                    type="range"
+                    min="2"
+                    max="90"
+                    step="1"
+                    value="22"
+                    data-role="cutTol"
+                    aria-label="去背景容差"
+                  />
+                </div>
+                <button class="act-btn act-btn-primary" type="button" data-draw-act="cut-go">
+                  去掉背景
+                </button>
+                <div class="panel-note">
+                  从四条边往里吃掉相近颜色，背景变透明；结果不满意就调小容差再试，或撤销。导出选 PNG 才保留透明
                 </div>
               </div>
 
@@ -1551,7 +1588,15 @@ const description =
       const drawTextInput = document.getElementById("draw-text") as HTMLInputElement;
 
       const pen = {
-        tool: "select" as "select" | "text" | "shape" | "pen" | "bucket",
+        tool: "select" as
+          | "select"
+          | "text"
+          | "shape"
+          | "pen"
+          | "bucket"
+          | "mosaic"
+          | "blur"
+          | "cut",
         shape: "rect",
         mode: "solid" as "solid" | "gradient",
         gtype: "linear" as "linear" | "radial",
@@ -1563,6 +1608,7 @@ const description =
         bold: true,
         italic: false,
         brush: 8,
+        cutTol: 22,
       };
 
       type DrawSnap = { json: string; bg: HTMLCanvasElement };
@@ -1901,6 +1947,197 @@ const description =
         statusEl.textContent = "已填色，可以撤销";
       }
 
+      // ── 马赛克 / 模糊：直接改底图像素 ─────────────────
+
+      const px = { on: false, lx: 0, ly: 0 };
+
+      // 抠一块底图出来（坐标夹在画面内，越界不会拉花）
+      function subCopy(base: HTMLCanvasElement, sx: number, sy: number, size: number) {
+        const x0 = Math.max(0, Math.floor(sx));
+        const y0 = Math.max(0, Math.floor(sy));
+        const x1 = Math.min(base.width, Math.ceil(sx + size));
+        const y1 = Math.min(base.height, Math.ceil(sy + size));
+        const w = Math.max(1, x1 - x0);
+        const h = Math.max(1, y1 - y0);
+        const tmp = document.createElement("canvas");
+        tmp.width = w;
+        tmp.height = h;
+        tmp.getContext("2d")!.drawImage(base, x0, y0, w, h, 0, 0, w, h);
+        return { tmp, x0, y0, w, h };
+      }
+
+      // 一笔开始：先记快照（bg 指向旧 canvas），再换副本上改，撤销才回得去
+      function beginPixelStroke() {
+        if (!draw.base) return;
+        pushUndo();
+        draw.base = copyCanvas(draw.base);
+        px.on = true;
+        px.lx = Number.NaN;
+        px.ly = Number.NaN;
+      }
+
+      // 在显示坐标 (x, y) 处盖一个圆形的马赛克/模糊印子
+      function dab(x: number, y: number) {
+        const base = draw.base;
+        if (!base) return;
+        const k = base.width / Math.max(1, draw.dispW);
+        const r = Math.max(2, (pen.brush / 2) * k);
+        const cx = x * k;
+        const cy = y * k;
+        const ctx = base.getContext("2d")!;
+        const { tmp, x0, y0, w, h } = subCopy(base, cx - r, cy - r, r * 2);
+
+        if (pen.tool === "mosaic") {
+          const block = Math.max(2, Math.round(r / 2.5));
+          const small = document.createElement("canvas");
+          small.width = Math.max(1, Math.round(w / block));
+          small.height = Math.max(1, Math.round(h / block));
+          const sc = small.getContext("2d")!;
+          sc.imageSmoothingEnabled = true;
+          sc.drawImage(tmp, 0, 0, w, h, 0, 0, small.width, small.height);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(small, 0, 0, small.width, small.height, x0, y0, w, h);
+          ctx.restore();
+        } else {
+          // 模糊：先拷出来（带一点 padding 免得边缘被透明吃掉），模糊后盖回去
+          const blurPx = Math.max(1, r / 3);
+          const soft = document.createElement("canvas");
+          soft.width = w;
+          soft.height = h;
+          const fc = soft.getContext("2d")!;
+          fc.filter = `blur(${blurPx}px)`;
+          fc.drawImage(tmp, 0, 0);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(soft, x0, y0);
+          ctx.restore();
+        }
+      }
+
+      // 沿拖动轨迹连续盖印，间隔取笔刷半径的一半左右
+      function strokeTo(x: number, y: number) {
+        if (!px.on || !draw.base) return;
+        if (Number.isNaN(px.lx)) {
+          px.lx = x;
+          px.ly = y;
+          dab(x, y);
+          paintBase();
+          return;
+        }
+        const r = Math.max(2, pen.brush / 2);
+        const dx = x - px.lx;
+        const dy = y - px.ly;
+        const dist = Math.hypot(dx, dy);
+        const steps = Math.min(48, Math.max(1, Math.round(dist / Math.max(2, r * 0.5))));
+        for (let i = 1; i <= steps; i++) {
+          dab(px.lx + (dx * i) / steps, px.ly + (dy * i) / steps);
+        }
+        px.lx = x;
+        px.ly = y;
+        paintBase();
+      }
+
+      function endPixelStroke() {
+        if (!px.on) return;
+        px.on = false;
+        px.lx = Number.NaN;
+        px.ly = Number.NaN;
+        if (statusEl) {
+          statusEl.textContent =
+            pen.tool === "blur" ? "已模糊，可以撤销" : "已打马赛克，可以撤销";
+        }
+        syncDrawUI();
+      }
+
+      // ── 去背景：从四条边往里洪水，容差内连通的都变透明 ──
+
+      function cutBackground() {
+        if (!draw.base) return;
+        pushUndo();
+        const base = copyCanvas(draw.base);
+        const W = base.width;
+        const H = base.height;
+        const ctx = base.getContext("2d")!;
+        const img = ctx.getImageData(0, 0, W, H);
+        const d = img.data;
+        const tol = Math.max(2, pen.cutTol);
+        const seen = new Uint8Array(W * H);
+        const stack = new Int32Array(W * H);
+        let sp = 0;
+
+        // 和「上游」那个像素比色，缓变背景也能顺着走
+        const take = (i: number, from: number) => {
+          if (seen[i]) return;
+          const a = i * 4;
+          const b = from * 4;
+          if (d[a + 3] === 0) return;
+          if (
+            Math.abs(d[a] - d[b]) > tol ||
+            Math.abs(d[a + 1] - d[b + 1]) > tol ||
+            Math.abs(d[a + 2] - d[b + 2]) > tol
+          ) {
+            return;
+          }
+          seen[i] = 1;
+          stack[sp++] = i;
+        };
+
+        for (let x = 0; x < W; x++) {
+          const top = x;
+          const bot = (H - 1) * W + x;
+          if (!seen[top]) {
+            seen[top] = 1;
+            stack[sp++] = top;
+          }
+          if (!seen[bot]) {
+            seen[bot] = 1;
+            stack[sp++] = bot;
+          }
+        }
+        for (let y = 0; y < H; y++) {
+          const l = y * W;
+          const r = y * W + W - 1;
+          if (!seen[l]) {
+            seen[l] = 1;
+            stack[sp++] = l;
+          }
+          if (!seen[r]) {
+            seen[r] = 1;
+            stack[sp++] = r;
+          }
+        }
+
+        let cut = 0;
+        while (sp > 0) {
+          const i = stack[--sp];
+          d[i * 4 + 3] = 0;
+          cut++;
+          const x = i % W;
+          const y = (i - x) / W;
+          if (x > 0) take(i - 1, i);
+          if (x < W - 1) take(i + 1, i);
+          if (y > 0) take(i - W, i);
+          if (y < H - 1) take(i + W, i);
+        }
+
+        ctx.putImageData(img, 0, 0);
+        draw.base = base;
+        paintBase();
+        const pct = Math.round((cut / (W * H)) * 100);
+        if (statusEl) {
+          statusEl.textContent =
+            pct > 96
+              ? "几乎整张都被当成背景了，把容差调小再试（可撤销）"
+              : `已去掉背景（${pct}%），可撤销`;
+        }
+      }
+
       // ── 快照 / 撤销 ──────────────────────────────────
 
       function snapshot(): DrawSnap {
@@ -1955,9 +2192,15 @@ const description =
       function applyToolMode() {
         const f = draw.canvas;
         if (!f) return;
+        px.on = false;
         f.isDrawingMode = pen.tool === "pen";
         f.selection = pen.tool === "select";
-        f.skipTargetFind = pen.tool === "bucket";
+        // 这几个工具是「点/拖画布干活」，不要顺手选中下面的对象
+        f.skipTargetFind =
+          pen.tool === "bucket" ||
+          pen.tool === "mosaic" ||
+          pen.tool === "blur" ||
+          pen.tool === "cut";
         if (f.isDrawingMode) {
           if (!f.freeDrawingBrush) f.freeDrawingBrush = new PencilBrush(f);
           f.freeDrawingBrush.color = pen.c1;
@@ -1986,6 +2229,12 @@ const description =
           fillAt(p.x, p.y);
           return;
         }
+        if (pen.tool === "mosaic" || pen.tool === "blur") {
+          beginPixelStroke();
+          strokeTo(raw.x, raw.y);
+          return;
+        }
+        if (pen.tool === "cut") return;
         if (opt.target) {
           // 拖动/缩放之前先记一版，松手时才知道该回到哪
           draw.pending = snapshot();
@@ -2019,6 +2268,14 @@ const description =
         draw.canvas = f;
 
         f.on("mouse:down", onCanvasDown);
+        f.on("mouse:move", (opt: any) => {
+          if (!px.on) return;
+          const p = opt.scenePoint || f.getScenePoint(opt.e);
+          strokeTo(p.x, p.y);
+        });
+        f.on("mouse:up", endPixelStroke);
+        // 鼠标在画布外松手也要收笔，否则下一次移动会接着画
+        document.addEventListener("mouseup", endPixelStroke);
         f.on("selection:created", syncDrawUI);
         f.on("selection:updated", syncDrawUI);
         f.on("selection:cleared", syncDrawUI);
@@ -2065,7 +2322,8 @@ const description =
           b.setAttribute("aria-pressed", String(b.dataset.tool === pen.tool));
         }
         for (const g of drawPage.querySelectorAll<HTMLElement>("[data-show]")) {
-          g.hidden = g.dataset.show !== pen.tool;
+          // data-show 支持空格分隔多个工具，比如 "pen mosaic blur"
+          g.hidden = !(g.dataset.show || "").split(/\s+/).includes(pen.tool);
         }
         for (const b of drawPage.querySelectorAll<HTMLElement>("[data-mode]")) {
           b.setAttribute("aria-pressed", String(b.dataset.mode === pen.mode));
@@ -2084,6 +2342,8 @@ const description =
         if (sizeVal) sizeVal.textContent = `${pen.sizePct}% · ${textSize()}px`;
         const brushVal = drawPage.querySelector<HTMLElement>('[data-val="brush"]');
         if (brushVal) brushVal.textContent = `${pen.brush}px`;
+        const tolVal = drawPage.querySelector<HTMLElement>('[data-val="cutTol"]');
+        if (tolVal) tolVal.textContent = `${pen.cutTol}`;
         const angleVal = drawPage.querySelector<HTMLElement>('[data-val="angle"]');
         if (angleVal) angleVal.textContent = `${pen.angle}°`;
 
@@ -2130,7 +2390,13 @@ const description =
                   ? "按住直接画，松手后整笔可拖动"
                   : pen.tool === "bucket"
                     ? "点一下要填色的区域"
-                    : "点选对象后可拖动 / 缩放 / 旋转，Delete 删除";
+                    : pen.tool === "mosaic"
+                      ? "按住涂哪块，哪块就打上马赛克"
+                      : pen.tool === "blur"
+                        ? "按住涂哪块，哪块就变模糊"
+                        : pen.tool === "cut"
+                          ? "调容差后点「去掉背景」，背景会变透明"
+                          : "点选对象后可拖动 / 缩放 / 旋转，Delete 删除";
         }
       }
 
@@ -2335,6 +2601,10 @@ const description =
           deleteSelected();
           return;
         }
+        if (act === "cut-go") {
+          cutBackground();
+          return;
+        }
         if (act === "dup") {
           const sel = selectedObject();
           if (!sel || !draw.canvas) return;
@@ -2376,7 +2646,10 @@ const description =
         const t = e.target as HTMLElement;
 
         const tool = t.closest<HTMLElement>("[data-tool]")?.dataset.tool;
-        if (tool && ["select", "text", "shape", "pen", "bucket"].includes(tool)) {
+        if (
+          tool &&
+          ["select", "text", "shape", "pen", "bucket", "mosaic", "blur", "cut"].includes(tool)
+        ) {
           pen.tool = tool as typeof pen.tool;
           if (pen.tool !== "pen" && draw.canvas) draw.canvas.isDrawingMode = false;
           applyToolMode();
@@ -2499,6 +2772,13 @@ const description =
           if (draw.canvas?.freeDrawingBrush) {
             draw.canvas.freeDrawingBrush.width = Math.max(1, pen.brush);
           }
+          syncDrawUI();
+        });
+
+      drawPage
+        ?.querySelector<HTMLInputElement>('[data-role="cutTol"]')
+        ?.addEventListener("input", (e) => {
+          pen.cutTol = Number((e.target as HTMLInputElement).value);
           syncDrawUI();
         });
 

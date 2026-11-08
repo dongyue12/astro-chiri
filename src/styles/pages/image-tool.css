@@ -995,6 +995,18 @@
 	color: var(--deep-text);
 }
 
+/* 工具变多之后排两行，每行四个 */
+.draw-tools-grid {
+	flex-wrap: wrap;
+}
+
+.draw-tools-grid .draw-tool {
+	flex: 0 0 calc(25% - 0.19rem);
+	padding: 0 0.15rem;
+	white-space: nowrap;
+	font-size: 0.72rem;
+}
+
 .draw-chips {
 	display: flex;
 	flex-wrap: wrap;
