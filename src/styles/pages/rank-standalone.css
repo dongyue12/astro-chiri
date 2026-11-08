@@ -26,31 +26,33 @@
 	--tool-text: #1b2330;
 	--tool-topbar-bg: rgba(255, 255, 255, 0.84);
 
-	color-scheme: light dark;
+	/* 工具内部件（等级条、卡片池、浮动按钮） */
+	--tier-row-bg: #e8ebf1;
+	--tier-row-border: rgba(0, 0, 0, 0.07);
+	--pool-bg: #f8f9fb;
+	--pool-border: rgba(0, 0, 0, 0.13);
+	--float-bg: rgba(0, 0, 0, 0.04);
+	--float-bg-hover: rgba(0, 0, 0, 0.09);
+	--float-border: rgba(0, 0, 0, 0.1);
+
+	/* 实心按钮与幽灵按钮 */
+	--btn-solid-bg: #e9ecf2;
+	--btn-solid-bg-hover: #dfe4ec;
+	--btn-solid-bg-active: #d3dae4;
+	--btn-solid-text: #2c3646;
+	--ghost-fg: rgba(0, 0, 0, 0.56);
+	--ghost-border: rgba(0, 0, 0, 0.14);
+	--ghost-hover-bg: rgba(0, 0, 0, 0.06);
+	--ghost-hover-fg: #10141a;
+	--faint: rgba(0, 0, 0, 0.46);
+	--chip-bg: rgba(0, 0, 0, 0.06);
+	--chip-fg: rgba(0, 0, 0, 0.66);
+
+	color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--primary: #6ba7e8;
-		--card-bg: #1e2229;
-		--line-divider: rgba(255, 255, 255, 0.09);
-		--content-meta: rgba(255, 255, 255, 0.6);
-		--btn-regular-bg: #2a2f38;
-		--btn-regular-bg-hover: #333944;
-		--btn-regular-bg-active: #3c4350;
-		--btn-content: #b9c4d4;
-		--btn-plain-bg-hover: #262b33;
-		--muted: #2a2f38;
-		--deep-text: #eef2f7;
-
-		--tool-bg: #14171c;
-		--tool-text: #eef2f7;
-		--tool-topbar-bg: rgba(20, 23, 28, 0.86);
-	}
-}
-
-/* 强制深色版（排名工具用）：不跟随系统，固定深色调 */
-body.theme-dark {
+/* 深色：由 <html data-theme="dark"> 控制，用户可手动切换 */
+:root[data-theme="dark"] {
 	--primary: #2ecc71;
 	--card-bg: #2b2b2d;
 	--line-divider: rgba(255, 255, 255, 0.08);
@@ -66,6 +68,26 @@ body.theme-dark {
 	--tool-bg: #1a1a1c;
 	--tool-text: #ececee;
 	--tool-topbar-bg: rgba(26, 26, 28, 0.86);
+
+	--tier-row-bg: #2b2b2d;
+	--tier-row-border: transparent;
+	--pool-bg: #202022;
+	--pool-border: rgba(255, 255, 255, 0.14);
+	--float-bg: rgba(255, 255, 255, 0.07);
+	--float-bg-hover: rgba(255, 255, 255, 0.16);
+	--float-border: rgba(255, 255, 255, 0.1);
+
+	--btn-solid-bg: #3a3a3c;
+	--btn-solid-bg-hover: #4a4a4d;
+	--btn-solid-bg-active: #545458;
+	--btn-solid-text: #e8e8ea;
+	--ghost-fg: rgba(255, 255, 255, 0.62);
+	--ghost-border: rgba(255, 255, 255, 0.16);
+	--ghost-hover-bg: rgba(255, 255, 255, 0.09);
+	--ghost-hover-fg: #ffffff;
+	--faint: rgba(255, 255, 255, 0.45);
+	--chip-bg: rgba(255, 255, 255, 0.1);
+	--chip-fg: rgba(255, 255, 255, 0.75);
 
 	color-scheme: dark;
 }
@@ -146,7 +168,6 @@ body {
 }
 
 .tool-chip {
-	margin-left: auto;
 	flex-shrink: 0;
 	padding: 0.2rem 0.55rem;
 	border-radius: 999px;
@@ -215,8 +236,8 @@ body {
 	width: 2.2rem;
 	height: 2.2rem;
 	border-radius: 50%;
-	border: 1px solid var(--line-divider);
-	background-color: rgba(255, 255, 255, 0.07);
+	border: 1px solid var(--float-border);
+	background-color: var(--float-bg);
 	color: var(--content-meta);
 	text-decoration: none;
 	backdrop-filter: blur(8px);
@@ -227,7 +248,7 @@ body {
 }
 
 .tool-back-float:hover {
-	background-color: rgba(255, 255, 255, 0.16);
+	background-color: var(--float-bg-hover);
 	color: var(--deep-text);
 }
 
@@ -236,11 +257,63 @@ body {
 	height: 1.05rem;
 }
 
+/* 主题切换：顶栏内的小圆钮，与浮动返回按钮同款外观 */
+.tool-theme-btn {
+	display: inline-flex;
+	margin-left: auto;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 2rem;
+	height: 2rem;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--float-border);
+	background-color: var(--float-bg);
+	color: var(--content-meta);
+	cursor: pointer;
+	transition:
+		background-color 0.16s ease,
+		color 0.16s ease;
+}
+
+.tool-theme-btn:hover {
+	background-color: var(--float-bg-hover);
+	color: var(--deep-text);
+}
+
+.tool-theme-btn:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.tool-theme-btn svg {
+	width: 1.05rem;
+	height: 1.05rem;
+}
+
+/* 浮动版：没有顶栏的页面用，放右上角 */
+.tool-theme-float {
+	position: fixed;
+	top: calc(0.75rem + env(safe-area-inset-top, 0px));
+	right: 0.85rem;
+	z-index: 40;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+}
+
 @media (max-width: 480px) {
 	.tool-back-float {
 		width: 2rem;
 		height: 2rem;
 		top: calc(0.55rem + env(safe-area-inset-top, 0px));
 		left: 0.55rem;
+	}
+
+	.tool-theme-float {
+		width: 2rem;
+		height: 2rem;
+		top: calc(0.55rem + env(safe-area-inset-top, 0px));
+		right: 0.55rem;
 	}
 }
