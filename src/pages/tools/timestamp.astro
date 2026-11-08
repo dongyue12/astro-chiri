@@ -1,0 +1,382 @@
+---
+import "@/styles/pages/rank-standalone.css";
+import "@/styles/pages/calc-tools.css";
+
+const title = "时间戳转换";
+const description =
+	"Unix 时间戳与日期互相转换，秒和毫秒都支持，同时显示本地时间、UTC、ISO 8601 和相对时间。纯本地计算，不上传任何数据。";
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>{title} · 工具箱</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <script is:inline>
+      (function () {
+        var saved = null;
+        try {
+          saved = localStorage.getItem("tool-theme");
+        } catch (e) {}
+        if (saved === "light" || saved === "dark") {
+          document.documentElement.dataset.theme = saved;
+        } else {
+          document.documentElement.dataset.theme = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches
+            ? "dark"
+            : "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="tool-topbar">
+      <a class="tool-back" href="/tools/">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5Z"></path>
+        </svg>
+        工具箱
+      </a>
+      <h1 class="tool-title">{title}</h1>
+      <span class="tool-chip">实时</span>
+      <button class="tool-theme-btn" type="button" id="tool-theme" title="切换深色 / 浅色" aria-label="切换深浅色主题">
+        <span class="tool-theme-icon" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <main class="tool-main">
+      <div class="tk-wrap">
+        <section class="tk-main">
+          <!-- 现在 -->
+          <div class="tk-card tk-card-hero">
+            <div class="tk-card-head">
+              <span class="tk-card-title">现在</span>
+              <span class="tk-badge" id="tz-name">本地时区</span>
+            </div>
+            <div class="tk-out-row">
+              <div>
+                <div class="tk-out" id="now-ts">0</div>
+                <div class="tk-sub" id="now-local">--</div>
+              </div>
+              <button class="tk-copy" type="button" data-copy="now-ts">复制</button>
+            </div>
+            <div class="tk-kv">
+              <div class="tk-kv-row">
+                <span class="tk-kv-label">毫秒</span>
+                <span class="tk-kv-val" id="now-ms">--</span>
+              </div>
+              <div class="tk-kv-row">
+                <span class="tk-kv-label">UTC</span>
+                <span class="tk-kv-val" id="now-utc">--</span>
+              </div>
+              <div class="tk-kv-row">
+                <span class="tk-kv-label">ISO 8601</span>
+                <span class="tk-kv-val" id="now-iso">--</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tk-row">
+            <!-- 时间戳 → 时间 -->
+            <div class="tk-card">
+              <div class="tk-card-head">
+                <span class="tk-card-title">时间戳 → 时间</span>
+              </div>
+              <div class="tk-num">
+                <input class="tk-input" id="ts-in" type="text" inputmode="numeric" placeholder="比如 1762500000" aria-label="时间戳" />
+                <select class="tk-unit" id="ts-unit" aria-label="单位">
+                  <option value="s" selected>秒</option>
+                  <option value="ms">毫秒</option>
+                </select>
+              </div>
+              <div class="tk-kv" id="ts-result">
+                <div class="tk-kv-row">
+                  <span class="tk-kv-label">本地</span>
+                  <span class="tk-kv-val" id="ts-local">--</span>
+                  <button class="tk-mini" type="button" data-copy="ts-local">复制</button>
+                </div>
+                <div class="tk-kv-row">
+                  <span class="tk-kv-label">UTC</span>
+                  <span class="tk-kv-val" id="ts-utc">--</span>
+                  <button class="tk-mini" type="button" data-copy="ts-utc">复制</button>
+                </div>
+                <div class="tk-kv-row">
+                  <span class="tk-kv-label">相对</span>
+                  <span class="tk-kv-val" id="ts-rel">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 时间 → 时间戳 -->
+            <div class="tk-card">
+              <div class="tk-card-head">
+                <span class="tk-card-title">时间 → 时间戳</span>
+              </div>
+              <div class="tk-num">
+                <input class="tk-input tk-input-date" id="dt-in" type="datetime-local" step="1" aria-label="日期时间" />
+              </div>
+              <div class="tk-kv">
+                <div class="tk-kv-row">
+                  <span class="tk-kv-label">秒</span>
+                  <span class="tk-kv-val" id="dt-s">--</span>
+                  <button class="tk-mini" type="button" data-copy="dt-s">复制</button>
+                </div>
+                <div class="tk-kv-row">
+                  <span class="tk-kv-label">毫秒</span>
+                  <span class="tk-kv-val" id="dt-ms">--</span>
+                  <button class="tk-mini" type="button" data-copy="dt-ms">复制</button>
+                </div>
+              </div>
+              <p class="tk-note">按你电脑的本地时区换算。</p>
+            </div>
+          </div>
+
+          <!-- 常用 -->
+          <div class="tk-card tk-card-preview">
+            <div class="tk-card-head">
+              <span class="tk-card-title">常用时间戳</span>
+              <span class="tk-sub">点一下填进上面的输入框</span>
+            </div>
+            <div class="tk-quick" id="quick-list"></div>
+          </div>
+        </section>
+
+        <aside class="tk-side">
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">小抄</span>
+            <ul class="tk-list">
+              <li>1 天 = <b>86 400</b> 秒</li>
+              <li>1 小时 = <b>3 600</b> 秒</li>
+              <li>10 位是秒，13 位是毫秒</li>
+              <li>JS 的 <code>Date.now()</code> 给的正是毫秒</li>
+            </ul>
+          </div>
+
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">常见坑</span>
+            <ul class="tk-list">
+              <li>后端存秒、前端当毫秒用，时间会跳到 1970 年。</li>
+              <li>MySQL <code>DATETIME</code> 不带时区，跨时区要自己标 UTC。</li>
+              <li>2038 年 1 月 19 日之后，32 位有符号秒数会溢出。</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      const $ = (id: string) => document.getElementById(id) as HTMLElement;
+      const pad = (n: number) => String(n).padStart(2, "0");
+
+      function fmtLocal(d: Date) {
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+
+      function fmtUtc(d: Date) {
+        return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`;
+      }
+
+      function rel(d: Date) {
+        const diff = Date.now() - d.getTime();
+        const abs = Math.abs(diff);
+        const units: [number, string][] = [
+          [1000 * 60 * 60 * 24 * 365, "年"],
+          [1000 * 60 * 60 * 24 * 30, "个月"],
+          [1000 * 60 * 60 * 24, "天"],
+          [1000 * 60 * 60, "小时"],
+          [1000 * 60, "分钟"],
+          [1000, "秒"],
+        ];
+        if (abs < 1000) return "刚刚";
+        for (const [ms, name] of units) {
+          if (abs >= ms) {
+            const n = Math.floor(abs / ms);
+            return diff > 0 ? `${n} ${name}前` : `${n} ${name}后`;
+          }
+        }
+        return "刚刚";
+      }
+
+      // 时区名
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        const offset = -new Date().getTimezoneOffset() / 60;
+        $("tz-name").textContent = `${tz} · UTC${offset >= 0 ? "+" : ""}${offset}`;
+      } catch {
+        // 拿不到就保持默认文案
+      }
+
+      function tickNow() {
+        const now = new Date();
+        $("now-ts").textContent = String(Math.floor(now.getTime() / 1000));
+        $("now-local").textContent = fmtLocal(now);
+        $("now-ms").textContent = String(now.getTime());
+        $("now-utc").textContent = fmtUtc(now);
+        $("now-iso").textContent = now.toISOString();
+      }
+
+      function renderTs() {
+        const raw = ($("ts-in") as HTMLInputElement).value.trim();
+        const unit = ($("ts-unit") as HTMLSelectElement).value;
+        if (!raw) {
+          $("ts-local").textContent = "--";
+          $("ts-utc").textContent = "--";
+          $("ts-rel").textContent = "--";
+          return;
+        }
+        const n = Number(raw);
+        if (!Number.isFinite(n)) {
+          $("ts-local").textContent = "不是数字";
+          return;
+        }
+        const ms = unit === "ms" ? n : n * 1000;
+        const d = new Date(ms);
+        if (Number.isNaN(d.getTime())) {
+          $("ts-local").textContent = "超出范围";
+          return;
+        }
+        $("ts-local").textContent = fmtLocal(d);
+        $("ts-utc").textContent = fmtUtc(d);
+        $("ts-rel").textContent = rel(d);
+      }
+
+      function renderDt() {
+        const v = ($("dt-in") as HTMLInputElement).value;
+        if (!v) {
+          $("dt-s").textContent = "--";
+          $("dt-ms").textContent = "--";
+          return;
+        }
+        const d = new Date(v);
+        if (Number.isNaN(d.getTime())) {
+          $("dt-s").textContent = "无效时间";
+          $("dt-ms").textContent = "--";
+          return;
+        }
+        $("dt-s").textContent = String(Math.floor(d.getTime() / 1000));
+        $("dt-ms").textContent = String(d.getTime());
+      }
+
+      function setDtNow() {
+        const d = new Date();
+        ($("dt-in") as HTMLInputElement).value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        renderDt();
+      }
+
+      // 常用时间点
+      function quickList() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const items = [
+          { label: "今天 0 点", d: start },
+          { label: "明天 0 点", d: new Date(start.getTime() + 86400000) },
+          { label: "本周一", d: new Date(start.getTime() - ((start.getDay() + 6) % 7) * 86400000) },
+          { label: "下周一", d: new Date(start.getTime() + (8 - ((start.getDay() + 6) % 7)) * 86400000) },
+          { label: "本月 1 日", d: new Date(now.getFullYear(), now.getMonth(), 1) },
+          { label: "下月 1 日", d: new Date(now.getFullYear(), now.getMonth() + 1, 1) },
+          { label: "今年 1 月 1 日", d: new Date(now.getFullYear(), 0, 1) },
+          { label: "去年 1 月 1 日", d: new Date(now.getFullYear() - 1, 0, 1) },
+          { label: "1 小时后", d: new Date(now.getTime() + 3600000) },
+          { label: "1 天后", d: new Date(now.getTime() + 86400000) },
+          { label: "7 天后", d: new Date(now.getTime() + 7 * 86400000) },
+          { label: "30 天后", d: new Date(now.getTime() + 30 * 86400000) },
+          { label: "1 年后", d: new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()) },
+          { label: "2038 大限", d: new Date(2147483647 * 1000) },
+        ];
+        $("quick-list").innerHTML = items
+          .map((it) => {
+            const s = Math.floor(it.d.getTime() / 1000);
+            return `<button class="tk-quick-item" type="button" data-ts="${s}">
+              <span class="tk-quick-label">${it.label}</span>
+              <span class="tk-quick-ts">${s}</span>
+            </button>`;
+          })
+          .join("");
+      }
+
+      $("quick-list").addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-ts]");
+        if (!btn) return;
+        ($("ts-in") as HTMLInputElement).value = btn.dataset.ts || "";
+        ($("ts-unit") as HTMLSelectElement).value = "s";
+        renderTs();
+      });
+
+      function copy(text: string, btn?: HTMLElement) {
+        const done = () => {
+          if (!btn) return;
+          const old = btn.textContent;
+          btn.textContent = "已复制";
+          setTimeout(() => (btn.textContent = old), 1000);
+        };
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text).then(done, () => {});
+          return;
+        }
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        done();
+      }
+
+      document.addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-copy]");
+        if (!btn) return;
+        const target = btn.dataset.copy;
+        if (!target) return;
+        copy($(target).textContent || "", btn);
+      });
+
+      $("ts-in").addEventListener("input", renderTs);
+      $("ts-unit").addEventListener("change", renderTs);
+      $("dt-in").addEventListener("input", renderDt);
+
+      tickNow();
+      setInterval(tickNow, 1000);
+      setDtNow();
+      quickList();
+      renderTs();
+    </script>
+
+    <script>
+      const SUN = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-1-11V2h2v2h-2Zm0 18v-2h2v2h-2ZM4 13H2v-2h2v2Zm18 0h-2v-2h2v2ZM5.6 7 4.2 5.6 5.6 4.2 7 5.6 5.6 7Zm12.8 12.8-1.4-1.4 1.4-1.4 1.4 1.4-1.4 1.4ZM5.6 17l1.4 1.4-1.4 1.4L4.2 18.4 5.6 17ZM18.4 7l-1.4-1.4 1.4-1.4 1.4 1.4L18.4 7Z"/></svg>`;
+      const MOON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21q-3.75 0-6.375-2.625T3 12q0-3.75 2.625-6.375T12 3q.35 0 .688.025.337.025.662.075-.5.725-.762 1.55Q12.3 5.475 12.3 6.35q0 2.35 1.675 4.025Q15.65 12.05 18 12.05q.875 0 1.7-.263.825-.262 1.55-.762.05.325.075.663.075.337.075.712 0 3.75-2.625 6.375T12 21Z"/></svg>`;
+
+      const themeBtn = document.getElementById("tool-theme");
+      const themeIcon = themeBtn?.querySelector<HTMLElement>(".tool-theme-icon");
+
+      function syncThemeIcon() {
+        if (!themeIcon) return;
+        themeIcon.innerHTML =
+          document.documentElement.dataset.theme === "dark" ? SUN : MOON;
+      }
+
+      themeBtn?.addEventListener("click", () => {
+        const next =
+          document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem("tool-theme", next);
+        } catch {
+          // 隐私模式存不了，忽略
+        }
+        syncThemeIcon();
+      });
+
+      syncThemeIcon();
+    </script>
+  </body>
+</html>

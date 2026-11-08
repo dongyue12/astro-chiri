@@ -26,10 +26,31 @@ const tools: ToolCard[] = [
 	},
 	{
 		name: "图片处理",
-		desc: "批量转 WebP / JPEG / PNG，改宽度、旋转翻转、调亮度对比度，一次设置全部导出。发博客前处理配图很顺手。",
+		desc: "批量转 WebP / JPEG / PNG，改宽度、旋转翻转、调亮度对比度，还能裁剪圆角、加文字和图形，一次设置批量导出。",
 		url: "/tools/image/",
 		icon: "material-symbols:image",
-		tags: ["格式转换", "批量导出", "不用上传"],
+		tags: ["格式转换", "绘制标注", "批量导出"],
+	},
+	{
+		name: "Windows 分区计算",
+		desc: "想让分区正好显示 100GB？填 102401MB。也能反算某个 MB 值实际显示多大，以及一块硬盘能分出几个分区、系统分区该留多少。",
+		url: "/tools/partition/",
+		icon: "material-symbols:hard-drive",
+		tags: ["分区换算", "4K 对齐", "装机用"],
+	},
+	{
+		name: "时间戳转换",
+		desc: "Unix 时间戳和日期互转，秒和毫秒都认，顺带给出本地时间、UTC、ISO 8601 和相对时间，调接口时少踩一次时区的坑。",
+		url: "/tools/timestamp/",
+		icon: "material-symbols:schedule",
+		tags: ["秒 / 毫秒", "时区", "实时"],
+	},
+	{
+		name: "颜色转换",
+		desc: "HEX、RGB、HSL 互转，自动生成 15 级深浅色阶，还能查和黑/白文字的 WCAG 对比度，选色时不用来回算。",
+		url: "/tools/color/",
+		icon: "material-symbols:palette",
+		tags: ["色阶", "对比度", "写样式用"],
 	},
 ];
 ---
@@ -50,7 +71,7 @@ const tools: ToolCard[] = [
       </div>
 
       <p class="tools-intro">
-        点开会在新标签页里打开，不影响你正在读的文章。所有处理都在你自己的浏览器里完成，图片不会离开这台设备。
+        点开会在新标签页里打开，不影响你正在读的文章。所有计算和文件处理都在你自己的浏览器里完成，数据不会离开这台设备。
       </p>
 
       <div class="tools-grid">

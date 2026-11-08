@@ -1,0 +1,767 @@
+/* 计算类小工具（分区 / 时间戳 / 颜色）共用样式 */
+
+.tk-wrap {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 310px;
+	gap: 1rem;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.tk-main {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	min-height: 0;
+	min-width: 0;
+}
+
+.tk-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.85rem;
+	flex: 0 0 auto;
+	min-height: 0;
+}
+
+.tk-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.95rem 1.05rem;
+	border-radius: 0.85rem;
+	border: 1px solid var(--line-divider);
+	background-color: var(--card-bg);
+	min-width: 0;
+}
+
+.tk-card-hero {
+	gap: 0.7rem;
+	flex: 0 0 auto;
+}
+
+.tk-card-side {
+	gap: 0.55rem;
+}
+
+.tk-side {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding-right: 2px;
+}
+
+.tk-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.tk-card-title {
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	color: var(--content-meta);
+	text-transform: uppercase;
+}
+
+.tk-badge {
+	padding: 0.1rem 0.45rem;
+	border-radius: 999px;
+	background-color: var(--chip-bg);
+	color: var(--chip-fg);
+	font-size: 0.68rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/* ── 输入 ───────────────────────────────────────────── */
+
+.tk-num {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.tk-input,
+.tk-unit {
+	height: 2.6rem;
+	border-radius: 0.55rem;
+	border: 1px solid var(--line-divider);
+	background-color: var(--tool-bg);
+	color: var(--tool-text);
+	font-family: inherit;
+	font-size: 1.05rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.tk-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0 0.7rem;
+	font-weight: 700;
+}
+
+.tk-input:focus-visible,
+.tk-unit:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 1px;
+}
+
+.tk-unit {
+	flex: 0 0 auto;
+	padding: 0 0.5rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.tk-unit-grow {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.tk-unit-static {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 0.7rem;
+	color: var(--content-meta);
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+/* ── 输出 ───────────────────────────────────────────── */
+
+.tk-out-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.8rem;
+}
+
+.tk-out {
+	font-size: 2.15rem;
+	line-height: 1.1;
+	font-weight: 800;
+	color: var(--primary);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.01em;
+}
+
+.tk-out-sm {
+	font-size: 1.45rem;
+	margin-top: 0.1rem;
+}
+
+.tk-sub {
+	margin: 0;
+	font-size: 0.76rem;
+	line-height: 1.5;
+	color: var(--content-meta);
+}
+
+.tk-note {
+	margin: 0;
+	font-size: 0.74rem;
+	line-height: 1.55;
+	color: var(--content-meta);
+}
+
+.tk-cmd {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.42rem 0.42rem 0.42rem 0.7rem;
+	border-radius: 0.5rem;
+	border: 1px dashed var(--line-divider);
+	background-color: var(--tool-bg);
+	overflow: hidden;
+}
+
+.tk-cmd code {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.78rem;
+	color: var(--tool-text);
+}
+
+.tk-copy {
+	flex: 0 0 auto;
+	height: 2.1rem;
+	padding: 0 0.75rem;
+	border-radius: 0.45rem;
+	border: 1px solid transparent;
+	background-color: var(--primary);
+	color: #fff;
+	font-family: inherit;
+	font-size: 0.78rem;
+	font-weight: 700;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: filter 0.15s ease;
+}
+
+.tk-copy:hover {
+	filter: brightness(1.08);
+}
+
+.tk-copy-sm {
+	height: 1.7rem;
+	padding: 0 0.55rem;
+	font-size: 0.72rem;
+	font-weight: 600;
+}
+
+/* ── 侧栏表格与列表 ─────────────────────────────────── */
+
+.tk-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.78rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.tk-table th {
+	text-align: left;
+	padding: 0.2rem 0.3rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: var(--content-meta);
+	border-bottom: 1px solid var(--line-divider);
+}
+
+.tk-table th:last-child,
+.tk-table td:last-child {
+	text-align: right;
+}
+
+.tk-table td {
+	padding: 0.22rem 0.3rem;
+	border-bottom: 1px solid var(--line-divider);
+}
+
+.tk-table tbody tr {
+	cursor: pointer;
+	transition: background-color 0.12s ease;
+}
+
+.tk-table tbody tr:hover {
+	background-color: var(--btn-plain-bg-hover);
+}
+
+.tk-table code {
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.76rem;
+	color: var(--primary);
+}
+
+.tk-list {
+	margin: 0;
+	padding-left: 1.05rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	font-size: 0.78rem;
+	line-height: 1.5;
+	color: var(--content-meta);
+}
+
+.tk-list b {
+	color: var(--deep-text);
+	font-weight: 700;
+}
+
+/* ── 整盘分配预览 ───────────────────────────────────── */
+
+.tk-card-preview {
+	flex: 1 1 0;
+	min-height: 150px;
+	gap: 0.7rem;
+}
+
+.tk-preview-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0.7rem;
+}
+
+/* 分区清单：多的时候内部滚动，不顶开整页 */
+.tk-parts {
+	flex: 1 1 auto;
+	min-height: 2.4rem;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding-right: 2px;
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+.tk-part-row {
+	display: grid;
+	grid-template-columns: 1fr auto auto;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.22rem 0.45rem;
+	border-radius: 0.35rem;
+	background-color: var(--tool-bg);
+	font-size: 0.75rem;
+	color: var(--content-meta);
+	font-variant-numeric: tabular-nums;
+}
+
+.tk-part-row span:last-child {
+	color: var(--deep-text);
+	font-weight: 700;
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.73rem;
+}
+
+.tk-part-row span:nth-child(2) {
+	color: var(--content-meta);
+}
+
+.tk-part-sys {
+	background-color: var(--btn-regular-bg);
+}
+
+.tk-part-rest {
+	background-image: repeating-linear-gradient(
+		135deg,
+		var(--line-divider) 0 5px,
+		transparent 5px 10px
+	);
+	background-color: transparent;
+}
+
+.tk-part-more span {
+	opacity: 0.7;
+}
+
+.tk-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.74rem;
+	color: var(--content-meta);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.tk-check input {
+	accent-color: var(--primary);
+	cursor: pointer;
+}
+
+.tk-bar {
+	display: flex;
+	align-items: stretch;
+	height: clamp(38px, 7vh, 62px);
+	border-radius: 0.55rem;
+	overflow: hidden;
+	background-color: var(--tool-bg);
+	border: 1px solid var(--line-divider);
+}
+
+.tk-seg {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2px;
+	overflow: hidden;
+	box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.45);
+}
+
+.tk-seg i {
+	font-style: normal;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	color: #fff;
+	white-space: nowrap;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.tk-seg-part {
+	background-color: var(--primary);
+}
+
+.tk-seg-part:nth-child(even) {
+	filter: brightness(0.92);
+}
+
+.tk-seg-sys {
+	min-width: 9px;
+	background-color: var(--btn-regular-bg);
+	box-shadow: inset -1px 0 0 var(--line-divider);
+}
+
+.tk-seg-sys i {
+	color: var(--btn-content);
+	text-shadow: none;
+}
+
+.tk-seg-rest {
+	background-color: transparent;
+	background-image: repeating-linear-gradient(
+		135deg,
+		var(--line-divider) 0 6px,
+		transparent 6px 12px
+	);
+}
+
+.tk-seg-rest i {
+	color: var(--content-meta);
+	text-shadow: none;
+}
+
+.tk-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem 0.9rem;
+	font-size: 0.74rem;
+	color: var(--content-meta);
+}
+
+.tk-legend span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.tk-dot {
+	display: inline-block;
+	width: 0.6rem;
+	height: 0.6rem;
+	border-radius: 0.15rem;
+}
+
+.tk-dot-part {
+	background-color: var(--primary);
+}
+
+.tk-dot-sys {
+	background-color: var(--btn-regular-bg);
+	box-shadow: inset 0 0 0 1px var(--line-divider);
+}
+
+.tk-dot-rest {
+	background-image: repeating-linear-gradient(
+		135deg,
+		var(--line-divider) 0 3px,
+		transparent 3px 6px
+	);
+	box-shadow: inset 0 0 0 1px var(--line-divider);
+}
+
+.tk-unit-label {
+	margin-left: 0.35rem;
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: var(--content-meta);
+	letter-spacing: 0;
+}
+
+/* ── 键值行（时间戳 / 颜色用） ──────────────────────── */
+
+.tk-kv {
+	display: flex;
+	flex-direction: column;
+	gap: 0.28rem;
+	min-width: 0;
+}
+
+.tk-kv-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.3rem 0.45rem;
+	border-radius: 0.4rem;
+	background-color: var(--tool-bg);
+	min-width: 0;
+}
+
+.tk-kv-label {
+	flex: 0 0 3.4rem;
+	font-size: 0.72rem;
+	font-weight: 600;
+	color: var(--content-meta);
+}
+
+.tk-kv-val {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.8rem;
+	color: var(--tool-text);
+	font-variant-numeric: tabular-nums;
+}
+
+.tk-mini {
+	flex: 0 0 auto;
+	height: 1.5rem;
+	padding: 0 0.45rem;
+	border: 1px solid var(--line-divider);
+	border-radius: 0.3rem;
+	background-color: transparent;
+	color: var(--content-meta);
+	font-family: inherit;
+	font-size: 0.68rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.tk-mini:hover {
+	border-color: var(--primary);
+	color: var(--primary);
+}
+
+.tk-input-date {
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+/* ── 快捷列表 ───────────────────────────────────────── */
+
+.tk-quick {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem;
+	align-content: start;
+	padding-right: 2px;
+}
+
+.tk-quick-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.45rem 0.6rem;
+	border-radius: 0.45rem;
+	border: 1px solid var(--line-divider);
+	background-color: var(--tool-bg);
+	color: var(--content-meta);
+	font-family: inherit;
+	font-size: 0.76rem;
+	cursor: pointer;
+	text-align: left;
+	transition:
+		border-color 0.14s ease,
+		color 0.14s ease;
+}
+
+.tk-quick-item:hover {
+	border-color: var(--primary);
+	color: var(--deep-text);
+}
+
+.tk-quick-label {
+	flex: 0 0 auto;
+	font-weight: 600;
+}
+
+.tk-quick-ts {
+	flex: 1 1 auto;
+	min-width: 0;
+	text-align: right;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.74rem;
+	color: var(--primary);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ── 颜色工具 ───────────────────────────────────────── */
+
+.cl-hero {
+	display: grid;
+	grid-template-columns: 118px minmax(0, 1fr);
+	gap: 0.9rem;
+	align-items: stretch;
+}
+
+.cl-swatch {
+	border-radius: 0.6rem;
+	border: 1px solid var(--line-divider);
+	min-height: 118px;
+	transition: background-color 0.15s ease;
+}
+
+.cl-inputs {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.cl-picker {
+	flex: 0 0 auto;
+	width: 2.6rem;
+	height: 2.6rem;
+	padding: 0;
+	border: 1px solid var(--line-divider);
+	border-radius: 0.55rem;
+	background-color: transparent;
+	cursor: pointer;
+}
+
+.cl-picker::-webkit-color-swatch-wrapper {
+	padding: 3px;
+}
+
+.cl-picker::-webkit-color-swatch {
+	border: none;
+	border-radius: 0.35rem;
+}
+
+.cl-shades {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	grid-auto-rows: minmax(2.9rem, 1fr);
+	gap: 0.4rem;
+}
+
+.cl-shade {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.6rem;
+	min-height: 3.6rem;
+	padding: 0.4rem 0.45rem;
+	border: 1px solid var(--line-divider);
+	border-radius: 0.45rem;
+	font-family: inherit;
+	font-size: 0.68rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.cl-shade code {
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.66rem;
+	font-weight: 600;
+	opacity: 0.85;
+}
+
+.cl-shade:hover {
+	box-shadow: 0 0 0 2px var(--primary);
+}
+
+.cl-contrast {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 0.6rem;
+	border-radius: 0.5rem;
+	border: 1px solid var(--line-divider);
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.cl-contrast-tag {
+	flex: 1 1 auto;
+}
+
+.cl-contrast-val {
+	flex: 0 0 auto;
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 0.78rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.cl-badge {
+	flex: 0 0 auto;
+	padding: 0.05rem 0.35rem;
+	border-radius: 999px;
+	font-size: 0.66rem;
+	font-weight: 700;
+	background-color: rgba(0, 0, 0, 0.12);
+}
+
+.cl-badge-good {
+	background-color: #1f9d55;
+	color: #fff;
+}
+
+.cl-badge-mid {
+	background-color: #d99b1f;
+	color: #1b1200;
+}
+
+.cl-badge-bad {
+	background-color: #d64545;
+	color: #fff;
+}
+
+.cl-presets {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 0.4rem;
+}
+
+.cl-preset {
+	aspect-ratio: 1;
+	border-radius: 0.4rem;
+	border: 1px solid var(--line-divider);
+	padding: 0;
+	cursor: pointer;
+}
+
+.cl-preset:hover {
+	box-shadow: 0 0 0 2px var(--primary);
+}
+
+@media (max-width: 900px) {
+	.cl-hero {
+		grid-template-columns: 1fr;
+	}
+
+	.cl-swatch {
+		min-height: 90px;
+	}
+}
+
+/* ── 窄屏 ───────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+	.tk-wrap {
+		grid-template-columns: 1fr;
+	}
+
+	.tk-row {
+		grid-template-columns: 1fr;
+	}
+
+	.tk-side {
+		overflow: visible;
+	}
+
+	.tk-out {
+		font-size: 1.8rem;
+	}
+}

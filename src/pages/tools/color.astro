@@ -1,0 +1,423 @@
+---
+import "@/styles/pages/rank-standalone.css";
+import "@/styles/pages/calc-tools.css";
+
+const title = "颜色转换";
+const description =
+	"HEX、RGB、HSL 互转，顺手生成深浅色阶，并检查与黑/白文字的 WCAG 对比度。写样式时不用再翻转换器。";
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>{title} · 工具箱</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <script is:inline>
+      (function () {
+        var saved = null;
+        try {
+          saved = localStorage.getItem("tool-theme");
+        } catch (e) {}
+        if (saved === "light" || saved === "dark") {
+          document.documentElement.dataset.theme = saved;
+        } else {
+          document.documentElement.dataset.theme = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches
+            ? "dark"
+            : "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="tool-topbar">
+      <a class="tool-back" href="/tools/">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5Z"></path>
+        </svg>
+        工具箱
+      </a>
+      <h1 class="tool-title">{title}</h1>
+      <span class="tool-chip">HEX / RGB / HSL</span>
+      <button class="tool-theme-btn" type="button" id="tool-theme" title="切换深色 / 浅色" aria-label="切换深浅色主题">
+        <span class="tool-theme-icon" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <main class="tool-main">
+      <div class="tk-wrap">
+        <section class="tk-main">
+          <div class="tk-card tk-card-hero">
+            <div class="tk-card-head">
+              <span class="tk-card-title">输入颜色</span>
+              <span class="tk-badge" id="c-name">#4a90d9</span>
+            </div>
+            <div class="cl-hero">
+              <div class="cl-swatch" id="cl-swatch"></div>
+              <div class="cl-inputs">
+                <div class="tk-num">
+                  <input class="tk-input" id="c-input" type="text" value="#4a90d9" spellcheck="false" aria-label="颜色值" />
+                  <input class="cl-picker" id="c-picker" type="color" value="#4a90d9" aria-label="取色器" />
+                </div>
+                <div class="tk-kv">
+                  <div class="tk-kv-row">
+                    <span class="tk-kv-label">HEX</span>
+                    <span class="tk-kv-val" id="out-hex">#4a90d9</span>
+                    <button class="tk-mini" type="button" data-copy="out-hex">复制</button>
+                  </div>
+                  <div class="tk-kv-row">
+                    <span class="tk-kv-label">RGB</span>
+                    <span class="tk-kv-val" id="out-rgb">rgb(74, 144, 217)</span>
+                    <button class="tk-mini" type="button" data-copy="out-rgb">复制</button>
+                  </div>
+                  <div class="tk-kv-row">
+                    <span class="tk-kv-label">HSL</span>
+                    <span class="tk-kv-val" id="out-hsl">hsl(207, 65%, 57%)</span>
+                    <button class="tk-mini" type="button" data-copy="out-hsl">复制</button>
+                  </div>
+                </div>
+                <p class="tk-note">可以贴 HEX、<code>rgb(74,144,217)</code> 或 <code>hsl(207,65%,57%)</code>。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tk-card tk-card-preview">
+            <div class="tk-card-head">
+              <span class="tk-card-title">深浅色阶</span>
+              <span class="tk-sub">点一格换成那个颜色</span>
+            </div>
+            <div class="cl-shades" id="cl-shades"></div>
+            <p class="tk-note">做背景、边框、hover 态时按这个梯度取，颜色不会脏。</p>
+          </div>
+        </section>
+
+        <aside class="tk-side">
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">对比度（WCAG）</span>
+            <div class="cl-contrast" id="cl-contrast-dark">
+              <span class="cl-contrast-tag">黑字</span>
+              <span class="cl-contrast-val" id="cr-black">--</span>
+              <span class="cl-badge" id="cr-black-badge">--</span>
+            </div>
+            <div class="cl-contrast" id="cl-contrast-light">
+              <span class="cl-contrast-tag">白字</span>
+              <span class="cl-contrast-val" id="cr-white">--</span>
+              <span class="cl-badge" id="cr-white-badge">--</span>
+            </div>
+            <p class="tk-note">正文要 ≥ 4.5:1，大号字 ≥ 3:1。</p>
+          </div>
+
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">常用色</span>
+            <div class="cl-presets" id="cl-presets"></div>
+          </div>
+
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">顺带一提</span>
+            <ul class="tk-list">
+              <li>HSL 改亮度最直觉，做暗色主题时把 <b>L</b> 拉到 20% 左右。</li>
+              <li>同一个色相、不同饱和度的配色，比随机取色更容易协调。</li>
+              <li>深色背景上别用纯白文字，<b>#e6e6e6</b> 更耐看。</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      const $ = (id: string) => document.getElementById(id) as HTMLElement;
+      const pad2 = (n: number) => String(n).padStart(2, "0");
+
+      function hexToRgb(hex: string) {
+        let h = hex.replace("#", "").trim();
+        if (h.length === 3) {
+          h = h
+            .split("")
+            .map((c) => c + c)
+            .join("");
+        }
+        if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+        return {
+          r: parseInt(h.slice(0, 2), 16),
+          g: parseInt(h.slice(2, 4), 16),
+          b: parseInt(h.slice(4, 6), 16),
+        };
+      }
+
+      const rgbToHex = (r: number, g: number, b: number) =>
+        `#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+
+      function rgbToHsl(r: number, g: number, b: number) {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+        let h = 0;
+        let s = 0;
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+          else if (max === g) h = (b - r) / d + 2;
+          else h = (r - g) / d + 4;
+          h /= 6;
+        }
+        return {
+          h: Math.round(h * 360),
+          s: Math.round(s * 100),
+          l: Math.round(l * 100),
+        };
+      }
+
+      function hslToRgb(h: number, s: number, l: number) {
+        h = ((h % 360) + 360) % 360 / 360;
+        s /= 100;
+        l /= 100;
+        if (s === 0) {
+          const v = Math.round(l * 255);
+          return { r: v, g: v, b: v };
+        }
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        const hue = (t: number) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        };
+        return {
+          r: Math.round(hue(h + 1 / 3) * 255),
+          g: Math.round(hue(h) * 255),
+          b: Math.round(hue(h - 1 / 3) * 255),
+        };
+      }
+
+      function luminance(r: number, g: number, b: number) {
+        const f = (v: number) => {
+          const x = v / 255;
+          return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      }
+
+      function contrast(a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) {
+        const la = luminance(a.r, a.g, a.b);
+        const lb = luminance(b.r, b.g, b.b);
+        const hi = Math.max(la, lb);
+        const lo = Math.min(la, lb);
+        return (hi + 0.05) / (lo + 0.05);
+      }
+
+      // 解析用户输入：HEX / rgb() / hsl()
+      function parse(input: string) {
+        const s = input.trim().toLowerCase();
+        if (!s) return null;
+        if (s.startsWith("#") || /^[0-9a-f]{3}([0-9a-f]{3})?$/.test(s)) {
+          return hexToRgb(s.startsWith("#") ? s : `#${s}`);
+        }
+        const rgbMatch = s.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/);
+        if (rgbMatch) {
+          return {
+            r: Math.min(255, Math.round(Number(rgbMatch[1]))),
+            g: Math.min(255, Math.round(Number(rgbMatch[2]))),
+            b: Math.min(255, Math.round(Number(rgbMatch[3]))),
+          };
+        }
+        const hslMatch = s.match(/hsla?\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%?[\s,]+([\d.]+)%?/);
+        if (hslMatch) {
+          return hslToRgb(Number(hslMatch[1]), Number(hslMatch[2]), Number(hslMatch[3]));
+        }
+        return null;
+      }
+
+      const PRESETS = [
+        "#4a90d9",
+        "#2ecc71",
+        "#f5a524",
+        "#ff5d5d",
+        "#9b5de5",
+        "#ff70a6",
+        "#00b4d8",
+        "#111827",
+        "#6b7280",
+        "#e5e7eb",
+        "#f5f7fa",
+        "#ffffff",
+      ];
+
+      const state = { rgb: { r: 74, g: 144, b: 217 } };
+
+      function render(updateInput = true) {
+        const { r, g, b } = state.rgb;
+        const hex = rgbToHex(r, g, b);
+        const hsl = rgbToHsl(r, g, b);
+
+        $("cl-swatch").style.backgroundColor = hex;
+        $("c-name").textContent = hex;
+        if (updateInput) ($("c-input") as HTMLInputElement).value = hex;
+        ($("c-picker") as HTMLInputElement).value = hex;
+
+        $("out-hex").textContent = hex;
+        $("out-rgb").textContent = `rgb(${r}, ${g}, ${b})`;
+        $("out-hsl").textContent = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+
+        // 色阶：100 → 白，0 → 黑，50 是本色
+        const steps = [96, 90, 84, 78, 72, 64, 56, 50, 42, 34, 28, 22, 16, 10, 4];
+        $("cl-shades").innerHTML = steps
+          .map((p) => {
+            let c: { r: number; g: number; b: number };
+            if (p === 50) c = { r, g, b };
+            else if (p > 50) {
+              const t = (p - 50) / 50;
+              c = {
+                r: r + (255 - r) * t,
+                g: g + (255 - g) * t,
+                b: b + (255 - b) * t,
+              };
+            } else {
+              const t = (50 - p) / 50;
+              c = { r: r * (1 - t), g: g * (1 - t), b: b * (1 - t) };
+            }
+            const h = rgbToHex(c.r, c.g, c.b);
+            const light = luminance(c.r, c.g, c.b) > 0.45;
+            return `<button class="cl-shade" type="button" data-color="${h}" style="background:${h};color:${light ? "#1b2330" : "#ffffff"}">
+              <span>${p === 50 ? "本色" : p + "%"}</span>
+              <code>${h}</code>
+            </button>`;
+          })
+          .join("");
+
+        // 对比度
+        const black = { r: 0, g: 0, b: 0 };
+        const white = { r: 255, g: 255, b: 255 };
+        const crBlack = contrast(state.rgb, black);
+        const crWhite = contrast(state.rgb, white);
+        $("cr-black").textContent = `${crBlack.toFixed(2)}:1`;
+        $("cr-white").textContent = `${crWhite.toFixed(2)}:1`;
+        setBadge($("cr-black-badge"), crBlack);
+        setBadge($("cr-white-badge"), crWhite);
+
+        const darkPanel = $("cl-contrast-dark");
+        darkPanel.style.backgroundColor = hex;
+        darkPanel.style.color = "#111111";
+        const lightPanel = $("cl-contrast-light");
+        lightPanel.style.backgroundColor = hex;
+        lightPanel.style.color = "#ffffff";
+      }
+
+      function setBadge(el: HTMLElement, ratio: number) {
+        let text = "不合格";
+        let cls = "cl-badge-bad";
+        if (ratio >= 7) {
+          text = "AAA";
+          cls = "cl-badge-good";
+        } else if (ratio >= 4.5) {
+          text = "AA";
+          cls = "cl-badge-good";
+        } else if (ratio >= 3) {
+          text = "大字可用";
+          cls = "cl-badge-mid";
+        }
+        el.textContent = text;
+        el.className = `cl-badge ${cls}`;
+      }
+
+      function apply(input: string) {
+        const rgb = parse(input);
+        if (!rgb) {
+          $("c-name").textContent = "看不懂这个颜色";
+          return;
+        }
+        state.rgb = rgb;
+        render();
+      }
+
+      $("c-input").addEventListener("input", (e) =>
+        apply((e.target as HTMLInputElement).value),
+      );
+      $("c-picker").addEventListener("input", (e) => {
+        const rgb = hexToRgb((e.target as HTMLInputElement).value);
+        if (!rgb) return;
+        state.rgb = rgb;
+        render();
+      });
+
+      $("cl-shades").addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-color]");
+        if (!btn?.dataset.color) return;
+        apply(btn.dataset.color);
+      });
+
+      $("cl-presets").innerHTML = PRESETS.map(
+        (c) =>
+          `<button class="cl-preset" type="button" data-color="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`,
+      ).join("");
+
+      $("cl-presets").addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-color]");
+        if (!btn?.dataset.color) return;
+        apply(btn.dataset.color);
+      });
+
+      document.addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-copy]");
+        if (!btn) return;
+        const id = btn.dataset.copy;
+        if (!id) return;
+        const text = $(id).textContent || "";
+        const done = () => {
+          const old = btn.textContent;
+          btn.textContent = "已复制";
+          setTimeout(() => (btn.textContent = old), 1000);
+        };
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text).then(done, () => {});
+        }
+      });
+
+      render();
+    </script>
+
+    <script>
+      const SUN = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-1-11V2h2v2h-2Zm0 18v-2h2v2h-2ZM4 13H2v-2h2v2Zm18 0h-2v-2h2v2ZM5.6 7 4.2 5.6 5.6 4.2 7 5.6 5.6 7Zm12.8 12.8-1.4-1.4 1.4-1.4 1.4 1.4-1.4 1.4ZM5.6 17l1.4 1.4-1.4 1.4L4.2 18.4 5.6 17ZM18.4 7l-1.4-1.4 1.4-1.4 1.4 1.4L18.4 7Z"/></svg>`;
+      const MOON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21q-3.75 0-6.375-2.625T3 12q0-3.75 2.625-6.375T12 3q.35 0 .688.025.337.025.662.075-.5.725-.762 1.55Q12.3 5.475 12.3 6.35q0 2.35 1.675 4.025Q15.65 12.05 18 12.05q.875 0 1.7-.263.825-.262 1.55-.762.05.325.075.663.075.337.075.712 0 3.75-2.625 6.375T12 21Z"/></svg>`;
+
+      const themeBtn = document.getElementById("tool-theme");
+      const themeIcon = themeBtn?.querySelector<HTMLElement>(".tool-theme-icon");
+
+      function syncThemeIcon() {
+        if (!themeIcon) return;
+        themeIcon.innerHTML =
+          document.documentElement.dataset.theme === "dark" ? SUN : MOON;
+      }
+
+      themeBtn?.addEventListener("click", () => {
+        const next =
+          document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem("tool-theme", next);
+        } catch {
+          // 隐私模式存不了，忽略
+        }
+        syncThemeIcon();
+      });
+
+      syncThemeIcon();
+    </script>
+  </body>
+</html>

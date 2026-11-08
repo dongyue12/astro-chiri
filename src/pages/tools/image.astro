@@ -87,8 +87,24 @@ const description =
               <button class="stage-btn" type="button" id="btn-save-one">
                 下载这张
               </button>
+              <span class="stage-ops" id="stage-draw-ops" hidden>
+                <button class="stage-btn" type="button" data-draw-act="undo" disabled>
+                  撤销
+                </button>
+                <button class="stage-btn" type="button" data-draw-act="reset">
+                  还原
+                </button>
+                <button class="stage-btn" type="button" data-draw-act="cancel">
+                  取消
+                </button>
+                <button class="stage-btn stage-btn-primary" type="button" data-draw-act="apply">
+                  应用
+                </button>
+              </span>
             </div>
             <canvas class="img-preview" id="img-preview"></canvas>
+            <canvas class="img-draw" id="img-draw" hidden></canvas>
+            <span class="draw-hint" id="draw-hint" hidden></span>
           </div>
 
           <!-- 缩略图条：其余图片都在这里 -->
@@ -115,6 +131,15 @@ const description =
               aria-selected="false"
             >
               调色
+            </button>
+            <button
+              class="panel-tab"
+              type="button"
+              role="tab"
+              data-tab="draw"
+              aria-selected="false"
+            >
+              绘制
             </button>
             <button
               class="panel-tab"
@@ -233,6 +258,153 @@ const description =
                   <input type="range" id="in-saturate" min="0" max="200" value="100" aria-label="饱和度" />
                 </div>
                 <div class="panel-note">三项都只影响画面，不改原文件</div>
+              </div>
+            </div>
+
+            <!-- 绘制 -->
+            <div class="panel-page" data-page="draw" hidden>
+              <div class="panel-section">
+                <div class="panel-title"><span>工具</span></div>
+                <div class="draw-tools" data-role="tools">
+                  <button class="draw-tool" type="button" data-tool="text" aria-pressed="true">
+                    文字
+                  </button>
+                  <button class="draw-tool" type="button" data-tool="shape" aria-pressed="false">
+                    形状
+                  </button>
+                  <button class="draw-tool" type="button" data-tool="bucket" aria-pressed="false">
+                    油漆桶
+                  </button>
+                </div>
+              </div>
+
+              <div class="panel-section" data-show="text">
+                <div class="panel-title">
+                  <span>文字</span>
+                  <span class="panel-val" data-val="size"></span>
+                </div>
+                <div class="draw-field">
+                  <input
+                    class="draw-text-input"
+                    id="draw-text"
+                    type="text"
+                    maxlength="60"
+                    placeholder="输入要加的文字"
+                    aria-label="文字内容"
+                  />
+                </div>
+                <div class="draw-field">
+                  <input
+                    class="draw-slider"
+                    type="range"
+                    min="2"
+                    max="26"
+                    step="1"
+                    value="7"
+                    data-role="size"
+                    aria-label="字号"
+                  />
+                </div>
+                <div class="btn-group">
+                  <button class="icon-btn" type="button" data-draw-act="bold" aria-pressed="true">
+                    加粗
+                  </button>
+                  <button class="icon-btn" type="button" data-draw-act="delete" disabled>
+                    删除选中
+                  </button>
+                </div>
+                <div class="panel-note">
+                  点一下画布放文字，按住文字直接拖动改位置；选中后也能用方向键微调
+                </div>
+              </div>
+
+              <div class="panel-section" data-show="shape" hidden>
+                <div class="panel-title"><span>形状</span></div>
+                <div class="draw-chips" data-role="shapes">
+                  <button class="draw-chip" type="button" data-shape="rect" aria-pressed="false">
+                    矩形
+                  </button>
+                  <button class="draw-chip" type="button" data-shape="circle" aria-pressed="false">
+                    圆形
+                  </button>
+                  <button class="draw-chip" type="button" data-shape="triangle" aria-pressed="false">
+                    三角形
+                  </button>
+                  <button class="draw-chip" type="button" data-shape="diamond" aria-pressed="false">
+                    菱形
+                  </button>
+                  <button class="draw-chip" type="button" data-shape="star" aria-pressed="true">
+                    五角星
+                  </button>
+                  <button class="draw-chip" type="button" data-shape="arrow" aria-pressed="false">
+                    箭头
+                  </button>
+                </div>
+                <div class="panel-note">在图上按住拖出大小</div>
+              </div>
+
+              <div class="panel-section" data-show="bucket" hidden>
+                <div class="panel-title"><span>油漆桶</span></div>
+                <div class="panel-note">
+                  点哪里就把连成一片的同色区域填成「颜色 1」，不适用于渐变
+                </div>
+              </div>
+
+              <div class="panel-section">
+                <div class="panel-title"><span>颜色</span></div>
+                <div class="draw-tools" data-role="modes">
+                  <button class="draw-tool" type="button" data-mode="solid" aria-pressed="true">
+                    纯色
+                  </button>
+                  <button class="draw-tool" type="button" data-mode="gradient" aria-pressed="false">
+                    渐变
+                  </button>
+                </div>
+                <div class="draw-field">
+                  <input class="color-input" type="color" data-color="c1" value="#ff4d4f" aria-label="颜色 1" />
+                  <input class="color-input" type="color" data-color="c2" value="#ffd60a" aria-label="颜色 2" />
+                  <span class="draw-note">颜色 1 / 颜色 2</span>
+                </div>
+                <div class="swatches" data-role="swatches"></div>
+                <div class="swatches" data-when="gradient" hidden></div>
+                <div class="draw-field" data-when="gradient" hidden>
+                  <input
+                    class="draw-slider"
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    value="45"
+                    data-role="angle"
+                    aria-label="渐变角度"
+                  />
+                  <span class="draw-val" data-val="angle">45°</span>
+                </div>
+                <div class="draw-field" data-when="gradient" hidden>
+                  <button class="draw-chip" type="button" data-gtype="linear" aria-pressed="true">
+                    线性
+                  </button>
+                  <button class="draw-chip" type="button" data-gtype="radial" aria-pressed="false">
+                    径向
+                  </button>
+                </div>
+              </div>
+
+              <div class="panel-section">
+                <div class="panel-title"><span>这一段绘制</span></div>
+                <div class="btn-group">
+                  <button class="icon-btn" type="button" data-draw-act="undo" disabled>撤销</button>
+                  <button class="icon-btn" type="button" data-draw-act="reset">还原</button>
+                </div>
+                <div class="btn-group">
+                  <button class="icon-btn" type="button" data-draw-act="cancel">取消</button>
+                  <button class="icon-btn icon-btn-primary" type="button" data-draw-act="apply">
+                    应用
+                  </button>
+                </div>
+                <div class="panel-note">
+                  点「应用」把绘制写回这张图，之后照样能裁剪、调色；原文件不会改动
+                </div>
               </div>
             </div>
 
@@ -511,7 +683,8 @@ const description =
       function drawPreview() {
         const item = activeItem();
         if (!item) return;
-        drawItem(previewEl, item, 1400);
+        // 绘制中画布显示的是绘制内容，别被预览覆盖
+        if (!draw.active) drawItem(previewEl, item, 1400);
         const o = outSize(item);
         const ext = EXT[mimeOf(item)] || "png";
         document.getElementById("stage-name").textContent = item.name;
@@ -659,6 +832,10 @@ const description =
       }
 
       function setActive(id) {
+        if (draw.active && draw.item && draw.item.id !== id) {
+          endDraw(false);
+          statusEl.textContent = "切换了图片，本次绘制已取消";
+        }
         state.activeId = id;
         syncStripState();
         syncPanel();
@@ -680,6 +857,7 @@ const description =
       function removeItem(id) {
         const idx = state.items.findIndex((i) => i.id === id);
         if (idx < 0) return;
+        if (draw.active && draw.item && draw.item.id === id) endDraw(false);
         state.items[idx].bitmap.close?.();
         state.items.splice(idx, 1);
         if (state.activeId === id) {
@@ -1268,19 +1446,19 @@ const description =
         const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
           ".panel-tab",
         );
-        if (btn?.dataset.tab) switchTab(btn.dataset.tab);
+        if (!btn?.dataset.tab) return;
+        // 点「绘制」直接把当前图切进绘制状态，布局还是原来那一套
+        if (btn.dataset.tab === "draw" && !draw.active) {
+          const item = activeItem();
+          if (item) {
+            startDraw(item);
+            return;
+          }
+        }
+        switchTab(btn.dataset.tab);
       });
 
       // ── 绘制：文字 / 形状 / 油漆桶 ─────────────────────
-
-      const SHAPES = [
-        { id: "rect", name: "矩形" },
-        { id: "circle", name: "圆形" },
-        { id: "triangle", name: "三角形" },
-        { id: "diamond", name: "菱形" },
-        { id: "star", name: "五角星" },
-        { id: "arrow", name: "箭头" },
-      ];
 
       const GRADIENT_PRESETS = [
         { c1: "#ff9a3c", c2: "#ff5f6d", angle: 45 },
@@ -1310,7 +1488,7 @@ const description =
         c1: "#ff4d4f",
         c2: "#ffd60a",
         angle: 45,
-        text: "输入文字",
+        text: "",
         sizePct: 7,
         bold: true,
       };
@@ -1371,32 +1549,34 @@ const description =
         }
       }
 
-      function fillStyleFor(
+      // 纯色 / 渐变：文字与形状共用同一套取色逻辑
+      function styleFor(
         ctx: CanvasRenderingContext2D,
+        p: { mode: string; gtype: string; c1: string; c2: string; angle: number },
         x: number,
         y: number,
         w: number,
         h: number,
       ): string | CanvasGradient {
-        if (pen.mode === "solid") return pen.c1;
+        if (p.mode === "solid") return p.c1;
         const cx = x + w / 2;
         const cy = y + h / 2;
         const span = Math.max(w, h) / 2 || 1;
-        if (pen.gtype === "radial") {
+        if (p.gtype === "radial") {
           const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, span);
-          g.addColorStop(0, pen.c1);
-          g.addColorStop(1, pen.c2);
+          g.addColorStop(0, p.c1);
+          g.addColorStop(1, p.c2);
           return g;
         }
-        const rad = (pen.angle * Math.PI) / 180;
+        const rad = (p.angle * Math.PI) / 180;
         const g = ctx.createLinearGradient(
           cx - Math.cos(rad) * span,
           cy - Math.sin(rad) * span,
           cx + Math.cos(rad) * span,
           cy + Math.sin(rad) * span,
         );
-        g.addColorStop(0, pen.c1);
-        g.addColorStop(1, pen.c2);
+        g.addColorStop(0, p.c1);
+        g.addColorStop(1, p.c2);
         return g;
       }
 
@@ -1412,7 +1592,7 @@ const description =
         const ny = Math.min(y, y + h);
         const nw = Math.abs(w);
         const nh = Math.abs(h);
-        const style = fillStyleFor(ctx, nx, ny, nw, nh);
+        const style = styleFor(ctx, pen, nx, ny, nw, nh);
 
         if (kind === "arrow") {
           const ex = x + w;
@@ -1449,25 +1629,6 @@ const description =
         shapePath(ctx, kind, x, y, w, h);
         ctx.fillStyle = style;
         ctx.fill();
-        ctx.restore();
-      }
-
-      function stampText(
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        H: number,
-      ) {
-        const txt = pen.text.trim();
-        if (!txt) return;
-        const size = Math.max(10, Math.round((H * pen.sizePct) / 100));
-        ctx.save();
-        ctx.font = `${pen.bold ? 700 : 500} ${size}px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        const w = ctx.measureText(txt).width;
-        ctx.fillStyle = fillStyleFor(ctx, x, y, w, size * 1.2);
-        ctx.fillText(txt, x, y);
         ctx.restore();
       }
 
@@ -1523,405 +1684,742 @@ const description =
         ctx.putImageData(img, 0, 0);
       }
 
-      async function openDraw(item: any) {
-        document.querySelector(".draw-layer")?.remove();
+      // ── 绘制会话：直接画在主预览画布上，不另开弹层 ────
 
-        // 工作画布：过大的图先缩一档，避免油漆桶和撤销吃满内存
-        const MAX_EDGE = 2400;
+      const drawPage = panelEl!.querySelector<HTMLElement>(
+        '.panel-page[data-page="draw"]',
+      );
+      const drawSurface = document.getElementById("img-draw") as HTMLCanvasElement;
+      const sctx = drawSurface.getContext("2d") as CanvasRenderingContext2D;
+      const drawHintEl = document.getElementById("draw-hint") as HTMLElement;
+      const stageOpsEl = document.getElementById("stage-draw-ops") as HTMLElement;
+      const btnDrawOne = document.getElementById("btn-draw-one") as HTMLButtonElement;
+      const btnCropOne = document.getElementById("btn-crop-one") as HTMLButtonElement;
+      const btnSaveOne = document.getElementById("btn-save-one") as HTMLButtonElement;
+      const drawTextInput = document.getElementById("draw-text") as HTMLInputElement;
+
+      const draw = {
+        active: false,
+        item: null as any,
+        base: null as HTMLCanvasElement | null,
+        bctx: null as CanvasRenderingContext2D | null,
+        W: 0,
+        H: 0,
+        texts: [] as any[],
+        selId: null as string | null,
+        drag: null as any,
+        undo: [] as { canvas: HTMLCanvasElement; texts: any[]; selId: string | null }[],
+        maxUndo: 12,
+      };
+
+      // 侧栏里的色板与渐变预设
+      const swatchBox = drawPage?.querySelector<HTMLElement>(
+        '.swatches[data-role="swatches"]',
+      );
+      if (swatchBox) {
+        swatchBox.innerHTML = SWATCHES.map(
+          (c) =>
+            `<button class="swatch" type="button" data-swatch="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`,
+        ).join("");
+      }
+      const presetBox = drawPage?.querySelector<HTMLElement>(
+        '.swatches[data-when="gradient"]',
+      );
+      if (presetBox) {
+        presetBox.innerHTML = GRADIENT_PRESETS.map(
+          (g, i) =>
+            `<button class="swatch" type="button" data-gpreset="${i}" style="background:linear-gradient(135deg,${g.c1},${g.c2})" title="渐变预设 ${i + 1}" aria-label="渐变预设 ${i + 1}"></button>`,
+        ).join("");
+      }
+
+      function fontOf(o: any, H: number) {
+        const size = Math.max(10, Math.round((H * o.sizePct) / 100));
+        return `${o.bold ? 700 : 500} ${size}px "PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif`;
+      }
+
+      // 文字在画布上的实际包围盒（以对象中心为锚点）
+      function textBox(o: any) {
+        const size = Math.max(10, Math.round((draw.H * o.sizePct) / 100));
+        const mctx = draw.bctx;
+        let w = size;
+        if (mctx) {
+          mctx.save();
+          mctx.font = fontOf(o, draw.H);
+          w = mctx.measureText(o.txt || " ").width;
+          mctx.restore();
+        }
+        const h = size * 1.16;
+        const cx = o.x * draw.W;
+        const cy = o.y * draw.H;
+        return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy };
+      }
+
+      function paintText(ctx: CanvasRenderingContext2D, o: any) {
+        const txt = String(o.txt || "").trim();
+        if (!txt) return;
+        const b = textBox(o);
+        ctx.save();
+        ctx.font = fontOf(o, draw.H);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = styleFor(ctx, o, b.x, b.y, b.w, b.h);
+        ctx.fillText(txt, b.cx, b.cy);
+        ctx.restore();
+      }
+
+      // 选中框：虚线 + 四角小方块，方便看出文字范围
+      function paintSelection(ctx: CanvasRenderingContext2D, o: any) {
+        const b = textBox(o);
+        const pad = Math.max(6, Math.round(draw.W / 260));
+        const lw = Math.max(2, Math.round(draw.W / 620));
+        const x = b.x - pad;
+        const y = b.y - pad * 0.7;
+        const w = b.w + pad * 2;
+        const h = b.h + pad * 1.4;
+        ctx.save();
+        ctx.strokeStyle = "rgba(76,141,255,0.95)";
+        ctx.fillStyle = "rgba(76,141,255,0.95)";
+        ctx.lineWidth = lw;
+        ctx.setLineDash([lw * 4, lw * 3]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+        const s = lw * 3;
+        for (const [px, py] of [
+          [x, y],
+          [x + w, y],
+          [x, y + h],
+          [x + w, y + h],
+        ]) {
+          ctx.fillRect(px - s / 2, py - s / 2, s, s);
+        }
+        ctx.restore();
+      }
+
+      function selectedText() {
+        return draw.texts.find((o) => o.id === draw.selId) || null;
+      }
+
+      // 选中一段文字后，把它的属性回填到侧栏，改起来才对得上
+      function syncPenFromText(o: any) {
+        if (!o) return;
+        pen.text = o.txt;
+        pen.sizePct = o.sizePct;
+        pen.bold = o.bold;
+        pen.mode = o.mode === "gradient" ? "gradient" : "solid";
+        pen.gtype = o.gtype === "radial" ? "radial" : "linear";
+        pen.c1 = o.c1;
+        pen.c2 = o.c2;
+        pen.angle = o.angle;
+
+        if (drawTextInput) drawTextInput.value = o.txt;
+        const size = drawPage?.querySelector<HTMLInputElement>('[data-role="size"]');
+        if (size) size.value = String(o.sizePct);
+        const ang = drawPage?.querySelector<HTMLInputElement>('[data-role="angle"]');
+        if (ang) ang.value = String(o.angle);
+        for (const inp of drawPage?.querySelectorAll<HTMLInputElement>("[data-color]") || []) {
+          if (inp.dataset.color === "c1") inp.value = o.c1;
+          else inp.value = o.c2;
+        }
+      }
+
+      function repaint() {
+        if (!draw.base) return;
+        sctx.clearRect(0, 0, draw.W, draw.H);
+        sctx.drawImage(draw.base, 0, 0);
+        for (const o of draw.texts) paintText(sctx, o);
+        const sel = selectedText();
+        if (sel) paintSelection(sctx, sel);
+        const d = draw.drag;
+        if (d && d.kind === "shape") {
+          paintShape(sctx, pen.shape, d.x, d.y, d.cx - d.x, d.cy - d.y);
+        }
+      }
+
+      function hitText(p: { x: number; y: number }) {
+        const pad = Math.max(8, Math.round(draw.W / 220));
+        for (let i = draw.texts.length - 1; i >= 0; i--) {
+          const o = draw.texts[i];
+          const b = textBox(o);
+          if (
+            p.x >= b.x - pad &&
+            p.x <= b.x + b.w + pad &&
+            p.y >= b.y - pad &&
+            p.y <= b.y + b.h + pad
+          ) {
+            return o;
+          }
+        }
+        return null;
+      }
+
+      // 让文字整体留在画布内
+      function setTextCenter(o: any, cx: number, cy: number) {
+        const b = textBox(o);
+        const hx = Math.min(draw.W / 2, b.w / 2 + 2);
+        const hy = Math.min(draw.H / 2, b.h / 2 + 2);
+        o.x = Math.min(Math.max(cx, hx), draw.W - hx) / draw.W;
+        o.y = Math.min(Math.max(cy, hy), draw.H - hy) / draw.H;
+      }
+
+      function pushUndo() {
+        if (!draw.base || !draw.bctx) return;
+        const c = document.createElement("canvas");
+        c.width = draw.W;
+        c.height = draw.H;
+        c.getContext("2d")?.drawImage(draw.base, 0, 0);
+        draw.undo.push({
+          canvas: c,
+          texts: draw.texts.map((o) => ({ ...o })),
+          selId: draw.selId,
+        });
+        if (draw.undo.length > draw.maxUndo) draw.undo.shift();
+        syncDrawUI();
+      }
+
+      function restoreSnapshot(s: any) {
+        if (!draw.bctx) return;
+        draw.bctx.clearRect(0, 0, draw.W, draw.H);
+        draw.bctx.drawImage(s.canvas, 0, 0);
+        draw.texts = s.texts.map((o: any) => ({ ...o }));
+        draw.selId = s.selId;
+        repaint();
+        syncDrawUI();
+      }
+
+      function setUndoDisabled() {
+        const none = draw.undo.length === 0;
+        for (const b of document.querySelectorAll<HTMLButtonElement>(
+          '[data-draw-act="undo"]',
+        )) {
+          b.disabled = none;
+        }
+      }
+
+      function syncDrawUI() {
+        if (!drawPage) return;
+        for (const b of drawPage.querySelectorAll<HTMLElement>("[data-tool]")) {
+          b.setAttribute("aria-pressed", String(b.dataset.tool === pen.tool));
+        }
+        for (const g of drawPage.querySelectorAll<HTMLElement>("[data-show]")) {
+          g.hidden = g.dataset.show !== pen.tool;
+        }
+        for (const b of drawPage.querySelectorAll<HTMLElement>("[data-mode]")) {
+          b.setAttribute("aria-pressed", String(b.dataset.mode === pen.mode));
+        }
+        for (const g of drawPage.querySelectorAll<HTMLElement>("[data-when]")) {
+          g.hidden = pen.mode !== "gradient";
+        }
+        for (const b of drawPage.querySelectorAll<HTMLElement>("[data-shape]")) {
+          b.setAttribute("aria-pressed", String(b.dataset.shape === pen.shape));
+        }
+        for (const b of drawPage.querySelectorAll<HTMLElement>("[data-gtype]")) {
+          b.setAttribute("aria-pressed", String(b.dataset.gtype === pen.gtype));
+        }
+
+        const sizeVal = drawPage.querySelector<HTMLElement>('[data-val="size"]');
+        if (sizeVal) {
+          sizeVal.textContent = draw.active
+            ? `${pen.sizePct}% · ${Math.round((draw.H * pen.sizePct) / 100)}px`
+            : `${pen.sizePct}%`;
+        }
+        const angleVal = drawPage.querySelector<HTMLElement>('[data-val="angle"]');
+        if (angleVal) angleVal.textContent = `${pen.angle}°`;
+
+        drawPage
+          .querySelector('[data-draw-act="bold"]')
+          ?.setAttribute("aria-pressed", String(pen.bold));
+        const delBtn = drawPage.querySelector<HTMLButtonElement>(
+          '[data-draw-act="delete"]',
+        );
+        if (delBtn) delBtn.disabled = !draw.selId;
+
+        setUndoDisabled();
+
+        const hasSel = !!draw.selId;
+        drawHintEl.textContent = !draw.active
+          ? ""
+          : pen.tool === "text"
+            ? hasSel
+              ? "拖动文字改位置 · 方向键微调 · Esc 取消选中"
+              : "点画布放文字，放好后可拖动"
+            : pen.tool === "shape"
+              ? "按住拖动画出形状"
+              : "点同色区域一次填色";
+      }
+
+      const MAX_DRAW_EDGE = 2400;
+
+      function startDraw(item: any) {
+        if (!item) return;
+        if (draw.active && draw.item === item) {
+          switchTab("draw");
+          return;
+        }
+        if (draw.active) endDraw(false);
+
         const bw = item.bitmap.width || item.w0;
         const bh = item.bitmap.height || item.h0;
-        const k = Math.min(1, MAX_EDGE / Math.max(bw, bh));
+        const k = Math.min(1, MAX_DRAW_EDGE / Math.max(bw, bh));
         const W = Math.max(1, Math.round(bw * k));
         const H = Math.max(1, Math.round(bh * k));
 
         const base = document.createElement("canvas");
         base.width = W;
         base.height = H;
-        const ctx = base.getContext("2d") as CanvasRenderingContext2D;
-        ctx.drawImage(item.bitmap, 0, 0, W, H);
+        const bctx = base.getContext("2d") as CanvasRenderingContext2D;
+        bctx.drawImage(item.bitmap, 0, 0, W, H);
 
-        const layer = document.createElement("div");
-        layer.className = "draw-layer";
-        layer.innerHTML = `
-          <div class="draw-head">
-            <span class="draw-name"></span>
-            <span class="draw-spacer"></span>
-            <button class="draw-btn" type="button" data-act="undo" disabled>撤销</button>
-            <button class="draw-btn" type="button" data-act="reset">还原</button>
-            <button class="draw-btn" type="button" data-act="cancel">取消</button>
-            <button class="draw-btn draw-btn-primary" type="button" data-act="apply">应用</button>
-          </div>
-          <div class="draw-body">
-            <aside class="draw-side">
-              <div class="draw-group">
-                <span class="draw-label">工具</span>
-                <div class="draw-tools" data-role="tools">
-                  <button class="draw-tool" type="button" data-tool="text" aria-pressed="true">文字</button>
-                  <button class="draw-tool" type="button" data-tool="shape" aria-pressed="false">形状</button>
-                  <button class="draw-tool" type="button" data-tool="bucket" aria-pressed="false">油漆桶</button>
-                </div>
-              </div>
+        draw.active = true;
+        draw.item = item;
+        draw.base = base;
+        draw.bctx = bctx;
+        draw.W = W;
+        draw.H = H;
+        draw.texts = [];
+        draw.selId = null;
+        draw.drag = null;
+        draw.undo = [];
+        // 每步快照是一张整图，按像素量控制步数，避免吃满内存
+        draw.maxUndo = Math.max(3, Math.min(12, Math.floor(160e6 / (W * H * 4))));
 
-              <div class="draw-group" data-show="text">
-                <span class="draw-label">文字</span>
-                <div class="draw-field">
-                  <input class="draw-text-input" type="text" maxlength="60" value="${pen.text}" aria-label="文字内容" />
-                </div>
-                <div class="draw-field">
-                  <input class="draw-slider" type="range" min="2" max="26" step="1" value="${pen.sizePct}" data-role="size" aria-label="字号" />
-                  <span class="draw-val" data-val="size"></span>
-                </div>
-                <div class="draw-field">
-                  <button class="draw-chip" type="button" data-act="bold" aria-pressed="${pen.bold}">加粗</button>
-                  <span class="draw-note">在图上点一下放置</span>
-                </div>
-              </div>
+        drawSurface.width = W;
+        drawSurface.height = H;
+        drawSurface.hidden = false;
+        previewEl!.hidden = true;
+        stageOpsEl.hidden = false;
+        drawHintEl.hidden = false;
+        btnDrawOne.hidden = true;
+        btnCropOne.hidden = true;
+        btnSaveOne.hidden = true;
+        tabBar?.querySelector('[data-tab="draw"]')?.classList.add("has-session");
 
-              <div class="draw-group" data-show="shape" hidden>
-                <span class="draw-label">形状</span>
-                <div class="draw-chips" data-role="shapes">
-                  ${SHAPES.map(
-                    (s) =>
-                      `<button class="draw-chip" type="button" data-shape="${s.id}" aria-pressed="${s.id === pen.shape}">${s.name}</button>`,
-                  ).join("")}
-                </div>
-                <span class="draw-note">在图上按住拖出大小</span>
-              </div>
+        repaint();
+        switchTab("draw");
+        syncDrawUI();
+      }
 
-              <div class="draw-group" data-show="bucket" hidden>
-                <span class="draw-label">油漆桶</span>
-                <span class="draw-note">点哪里就把连成一片的同色区域填成「颜色 1」，不适用于渐变</span>
-              </div>
+      async function endDraw(commit: boolean) {
+        if (!draw.active) return;
+        const item = draw.item;
 
-              <div class="draw-group">
-                <span class="draw-label">颜色</span>
-                <div class="draw-tools" data-role="modes">
-                  <button class="draw-tool" type="button" data-mode="solid" aria-pressed="${pen.mode === "solid"}">纯色</button>
-                  <button class="draw-tool" type="button" data-mode="gradient" aria-pressed="${pen.mode === "gradient"}">渐变</button>
-                </div>
-                <div class="draw-field">
-                  <input class="color-input" type="color" data-color="c1" value="${pen.c1}" aria-label="颜色 1" />
-                  <input class="color-input" type="color" data-color="c2" value="${pen.c2}" aria-label="颜色 2" />
-                  <span class="draw-note">颜色 1 / 颜色 2</span>
-                </div>
-                <div class="swatches" data-role="swatches">
-                  ${SWATCHES.map(
-                    (c) =>
-                      `<button class="swatch" type="button" data-swatch="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`,
-                  ).join("")}
-                </div>
-                <div class="swatches" data-when="gradient" hidden>
-                  ${GRADIENT_PRESETS.map(
-                    (g, i) =>
-                      `<button class="swatch" type="button" data-gpreset="${i}" style="background:linear-gradient(135deg,${g.c1},${g.c2})" title="渐变预设 ${i + 1}" aria-label="渐变预设 ${i + 1}"></button>`,
-                  ).join("")}
-                </div>
-                <div class="draw-field" data-when="gradient" hidden>
-                  <input class="draw-slider" type="range" min="0" max="360" step="1" value="${pen.angle}" data-role="angle" aria-label="渐变角度" />
-                  <span class="draw-val" data-val="angle">${pen.angle}°</span>
-                </div>
-                <div class="draw-field" data-when="gradient" hidden>
-                  <button class="draw-chip" type="button" data-gtype="linear" aria-pressed="${pen.gtype === "linear"}">线性</button>
-                  <button class="draw-chip" type="button" data-gtype="radial" aria-pressed="${pen.gtype === "radial"}">径向</button>
-                </div>
-              </div>
-
-              <span class="draw-note">画完点「应用」写回这张图；原文件不会被改动</span>
-            </aside>
-
-            <div class="draw-stage">
-              <div class="draw-holder">
-                <canvas class="draw-canvas"></canvas>
-                <canvas class="draw-preview"></canvas>
-              </div>
-              <span class="draw-hint"></span>
-            </div>
-          </div>`;
-        document.body.appendChild(layer);
-
-        const baseCanvas = layer.querySelector(".draw-canvas") as HTMLCanvasElement;
-        const prevCanvas = layer.querySelector(".draw-preview") as HTMLCanvasElement;
-        baseCanvas.width = W;
-        baseCanvas.height = H;
-        prevCanvas.width = W;
-        prevCanvas.height = H;
-        baseCanvas.getContext("2d")?.drawImage(base, 0, 0);
-        const pctx = prevCanvas.getContext("2d") as CanvasRenderingContext2D;
-
-        (layer.querySelector(".draw-name") as HTMLElement).textContent = item.name;
-
-        const undoBtn = layer.querySelector(
-          '[data-act="undo"]',
-        ) as HTMLButtonElement;
-        const undoStack: string[] = [];
-
-        function pushUndo() {
-          undoStack.push(base.toDataURL("image/png"));
-          if (undoStack.length > 12) undoStack.shift();
-          undoBtn.disabled = undoStack.length === 0;
-        }
-
-        function blit() {
-          const bctx = baseCanvas.getContext("2d") as CanvasRenderingContext2D;
-          bctx.clearRect(0, 0, W, H);
-          bctx.drawImage(base, 0, 0);
-        }
-
-        function restoreTo(url: string) {
-          return new Promise<void>((res) => {
-            const img = new Image();
-            img.onload = () => {
-              ctx.clearRect(0, 0, W, H);
-              ctx.drawImage(img, 0, 0, W, H);
-              blit();
-              res();
-            };
-            img.onerror = () => res();
-            img.src = url;
-          });
-        }
-
-        // —— 侧栏状态同步 ——
-        const hintEl = layer.querySelector(".draw-hint") as HTMLElement;
-
-        function syncDrawUI() {
-          for (const b of layer.querySelectorAll<HTMLButtonElement>(".draw-tool[data-tool]")) {
-            b.setAttribute("aria-pressed", String(b.dataset.tool === pen.tool));
-          }
-          for (const g of layer.querySelectorAll<HTMLElement>("[data-show]")) {
-            g.hidden = g.dataset.show !== pen.tool;
-          }
-          for (const b of layer.querySelectorAll<HTMLButtonElement>(".draw-tool[data-mode]")) {
-            b.setAttribute("aria-pressed", String(b.dataset.mode === pen.mode));
-          }
-          for (const g of layer.querySelectorAll<HTMLElement>("[data-when]")) {
-            g.hidden = pen.mode !== "gradient";
-          }
-          for (const b of layer.querySelectorAll<HTMLButtonElement>("[data-shape]")) {
-            b.setAttribute("aria-pressed", String(b.dataset.shape === pen.shape));
-          }
-          for (const b of layer.querySelectorAll<HTMLButtonElement>("[data-gtype]")) {
-            b.setAttribute("aria-pressed", String(b.dataset.gtype === pen.gtype));
-          }
-          const sizeVal = layer.querySelector('[data-val="size"]') as HTMLElement;
-          if (sizeVal) {
-            sizeVal.textContent = `${pen.sizePct}% · ${Math.round((H * pen.sizePct) / 100)}px`;
-          }
-          const angleVal = layer.querySelector('[data-val="angle"]') as HTMLElement;
-          if (angleVal) angleVal.textContent = `${pen.angle}°`;
-          hintEl.textContent =
-            pen.tool === "text"
-              ? "点图上任意位置放文字"
-              : pen.tool === "shape"
-                ? "按住拖动画出形状"
-                : "点同色区域一次填色";
-        }
-
-        layer.addEventListener("click", async (e) => {
-          const t = e.target as HTMLElement;
-          const act = t.closest<HTMLButtonElement>("[data-act]")?.dataset.act;
-          if (act === "cancel") {
-            layer.remove();
-            return;
-          }
-          if (act === "reset") {
-            pushUndo();
-            ctx.clearRect(0, 0, W, H);
-            ctx.drawImage(item.bitmap, 0, 0, W, H);
-            blit();
-            return;
-          }
-          if (act === "undo") {
-            const url = undoStack.pop();
-            undoBtn.disabled = undoStack.length === 0;
-            if (url) await restoreTo(url);
-            return;
-          }
-          if (act === "bold") {
-            pen.bold = !pen.bold;
-            t.closest("button")?.setAttribute("aria-pressed", String(pen.bold));
-            return;
-          }
-          if (act === "apply") {
-            const btn = t.closest("button") as HTMLButtonElement;
-            btn.disabled = true;
-            const blob = await new Promise<Blob | null>((r) =>
-              base.toBlob(r, "image/png"),
-            );
-            if (!blob) {
-              btn.disabled = false;
-              return;
-            }
+        if (commit && item && draw.base) {
+          const out = document.createElement("canvas");
+          out.width = draw.W;
+          out.height = draw.H;
+          const octx = out.getContext("2d") as CanvasRenderingContext2D;
+          octx.drawImage(draw.base, 0, 0);
+          for (const o of draw.texts) paintText(octx, o);
+          const blob = await new Promise<Blob | null>((r) =>
+            out.toBlob(r, "image/png"),
+          );
+          if (blob) {
             const bmp = await createImageBitmap(blob);
-            (item.bitmap as ImageBitmap).close?.();
+            item.bitmap.close?.();
             item.bitmap = bmp;
             item.w0 = bmp.width;
             item.h0 = bmp.height;
             item.drawn = true;
             delete item.crop;
-            layer.remove();
-            scheduleRedraw();
-            syncPanel();
-            return;
+            statusEl!.textContent = "绘制已写回这张图";
           }
-
-          const tool = t.closest<HTMLButtonElement>("[data-tool]")?.dataset.tool;
-          if (tool === "text" || tool === "shape" || tool === "bucket") {
-            pen.tool = tool;
-            syncDrawUI();
-            return;
-          }
-          const mode = t.closest<HTMLButtonElement>("[data-mode]")?.dataset.mode;
-          if (mode === "solid" || mode === "gradient") {
-            pen.mode = mode;
-            syncDrawUI();
-            return;
-          }
-          const shape = t.closest<HTMLButtonElement>("[data-shape]")?.dataset.shape;
-          if (shape) {
-            pen.shape = shape;
-            syncDrawUI();
-            return;
-          }
-          const gt = t.closest<HTMLButtonElement>("[data-gtype]")?.dataset.gtype;
-          if (gt === "linear" || gt === "radial") {
-            pen.gtype = gt;
-            syncDrawUI();
-            return;
-          }
-          const gp = t.closest<HTMLButtonElement>("[data-gpreset]")?.dataset.gpreset;
-          if (gp !== undefined) {
-            const g = GRADIENT_PRESETS[Number(gp)];
-            if (g) {
-              pen.c1 = g.c1;
-              pen.c2 = g.c2;
-              pen.angle = g.angle;
-              const c1 = layer.querySelector<HTMLInputElement>('[data-color="c1"]');
-              const c2 = layer.querySelector<HTMLInputElement>('[data-color="c2"]');
-              const ang = layer.querySelector<HTMLInputElement>('[data-role="angle"]');
-              if (c1) c1.value = g.c1;
-              if (c2) c2.value = g.c2;
-              if (ang) ang.value = String(g.angle);
-              syncDrawUI();
-            }
-            return;
-          }
-          const sw = t.closest<HTMLButtonElement>("[data-swatch]")?.dataset.swatch;
-          if (sw) {
-            pen.c1 = sw;
-            const c1 = layer.querySelector<HTMLInputElement>('[data-color="c1"]');
-            if (c1) c1.value = sw;
-          }
-        });
-
-        const textInput = layer.querySelector(
-          ".draw-text-input",
-        ) as HTMLInputElement;
-        textInput?.addEventListener("input", () => {
-          pen.text = textInput.value;
-        });
-
-        layer
-          .querySelector<HTMLInputElement>('[data-role="size"]')
-          ?.addEventListener("input", (e) => {
-            pen.sizePct = Number((e.target as HTMLInputElement).value);
-            syncDrawUI();
-          });
-
-        layer
-          .querySelector<HTMLInputElement>('[data-role="angle"]')
-          ?.addEventListener("input", (e) => {
-            pen.angle = Number((e.target as HTMLInputElement).value);
-            syncDrawUI();
-          });
-
-        for (const el of layer.querySelectorAll<HTMLInputElement>("[data-color]")) {
-          el.addEventListener("input", () => {
-            if (el.dataset.color === "c1") pen.c1 = el.value;
-            else pen.c2 = el.value;
-          });
         }
 
-        // —— 画布指针交互 ——
-        let dragStart: { x: number; y: number } | null = null;
+        draw.active = false;
+        draw.item = null;
+        draw.base = null;
+        draw.bctx = null;
+        draw.texts = [];
+        draw.selId = null;
+        draw.drag = null;
+        draw.undo = [];
+        draw.W = 0;
+        draw.H = 0;
 
-        function toCanvas(e: PointerEvent) {
-          const r = baseCanvas.getBoundingClientRect();
-          return {
-            x: ((e.clientX - r.left) / Math.max(1, r.width)) * W,
-            y: ((e.clientY - r.top) / Math.max(1, r.height)) * H,
-          };
-        }
+        drawSurface.hidden = true;
+        previewEl!.hidden = false;
+        stageOpsEl.hidden = true;
+        drawHintEl.hidden = true;
+        btnDrawOne.hidden = false;
+        btnCropOne.hidden = false;
+        btnSaveOne.hidden = false;
+        tabBar?.querySelector('[data-tab="draw"]')?.classList.remove("has-session");
 
-        baseCanvas.addEventListener("pointerdown", (e) => {
-          try {
-            baseCanvas.setPointerCapture(e.pointerId);
-          } catch {
-            // 某些环境不支持指针捕获，忽略即可
-          }
-          const p = toCanvas(e);
-          if (pen.tool === "text") {
-            pushUndo();
-            stampText(ctx, p.x, p.y, H);
-            blit();
-            return;
-          }
-          if (pen.tool === "bucket") {
-            pushUndo();
-            floodFill(
-              ctx,
-              W,
-              H,
-              Math.min(W - 1, Math.max(0, Math.floor(p.x))),
-              Math.min(H - 1, Math.max(0, Math.floor(p.y))),
-              pen.c1,
-            );
-            blit();
-            return;
-          }
-          dragStart = p;
-        });
+        scheduleRedraw();
+        syncPanel();
+        syncDrawUI();
 
-        baseCanvas.addEventListener("pointermove", (e) => {
-          if (!dragStart) return;
-          const p = toCanvas(e);
-          pctx.clearRect(0, 0, W, H);
-          paintShape(pctx, pen.shape, dragStart.x, dragStart.y, p.x - dragStart.x, p.y - dragStart.y);
-        });
+        // 应用后原地开一段新的绘制，方便接着画；取消则退回普通编辑
+        if (commit && item) startDraw(item);
+        else if (!commit && state.items.length) switchTab("size");
+      }
 
-        baseCanvas.addEventListener("pointerup", (e) => {
-          if (!dragStart) return;
-          const p = toCanvas(e);
-          const dx = p.x - dragStart.x;
-          const dy = p.y - dragStart.y;
-          pctx.clearRect(0, 0, W, H);
-          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-            pushUndo();
-            paintShape(ctx, pen.shape, dragStart.x, dragStart.y, dx, dy);
-            blit();
-          }
-          dragStart = null;
-        });
-
-        baseCanvas.addEventListener("pointercancel", () => {
-          dragStart = null;
-          pctx.clearRect(0, 0, W, H);
-        });
-
-        const onKey = (e: KeyboardEvent) => {
-          if (e.key === "Escape") {
-            layer.remove();
-            document.removeEventListener("keydown", onKey);
-          }
-        };
-        document.addEventListener("keydown", onKey);
-
+      function deleteSelected() {
+        const sel = selectedText();
+        if (!sel) return;
+        pushUndo();
+        draw.texts = draw.texts.filter((o) => o.id !== sel.id);
+        draw.selId = null;
+        repaint();
         syncDrawUI();
       }
 
-      document.getElementById("btn-draw-one").addEventListener("click", () => {
+      // —— 侧栏交互（页面级委托，stage 上的按钮也走这里） ——
+      document.addEventListener("click", (e) => {
+        const el = (e.target as HTMLElement).closest<HTMLElement>("[data-draw-act]");
+        const act = el?.dataset.drawAct;
+        if (!act) return;
+
+        if (act === "apply") {
+          endDraw(true);
+          return;
+        }
+        if (act === "cancel") {
+          endDraw(false);
+          return;
+        }
+        if (!draw.active) return;
+
+        if (act === "undo") {
+          const s = draw.undo.pop();
+          if (s) restoreSnapshot(s);
+          setUndoDisabled();
+          return;
+        }
+        if (act === "reset") {
+          if (!draw.item) return;
+          pushUndo();
+          draw.bctx?.clearRect(0, 0, draw.W, draw.H);
+          if (draw.bctx) draw.bctx.drawImage(draw.item.bitmap, 0, 0, draw.W, draw.H);
+          draw.texts = [];
+          draw.selId = null;
+          repaint();
+          syncDrawUI();
+          return;
+        }
+        if (act === "delete") {
+          deleteSelected();
+          return;
+        }
+        if (act === "bold") {
+          pen.bold = !pen.bold;
+          const sel = selectedText();
+          if (sel) {
+            sel.bold = pen.bold;
+            repaint();
+          }
+          syncDrawUI();
+          return;
+        }
+      });
+
+      drawPage?.addEventListener("click", (e) => {
+        const t = e.target as HTMLElement;
+
+        const tool = t.closest<HTMLElement>("[data-tool]")?.dataset.tool;
+        if (tool === "text" || tool === "shape" || tool === "bucket") {
+          pen.tool = tool;
+          syncDrawUI();
+          return;
+        }
+        const mode = t.closest<HTMLElement>("[data-mode]")?.dataset.mode;
+        if (mode === "solid" || mode === "gradient") {
+          pen.mode = mode;
+          const sel = selectedText();
+          if (sel) {
+            sel.mode = mode;
+            repaint();
+          }
+          syncDrawUI();
+          return;
+        }
+        const shape = t.closest<HTMLElement>("[data-shape]")?.dataset.shape;
+        if (shape) {
+          pen.shape = shape;
+          syncDrawUI();
+          return;
+        }
+        const gt = t.closest<HTMLElement>("[data-gtype]")?.dataset.gtype;
+        if (gt === "linear" || gt === "radial") {
+          pen.gtype = gt;
+          const sel = selectedText();
+          if (sel) {
+            sel.gtype = gt;
+            repaint();
+          }
+          syncDrawUI();
+          return;
+        }
+        const gp = t.closest<HTMLElement>("[data-gpreset]")?.dataset.gpreset;
+        if (gp !== undefined) {
+          const g = GRADIENT_PRESETS[Number(gp)];
+          if (g) {
+            pen.c1 = g.c1;
+            pen.c2 = g.c2;
+            pen.angle = g.angle;
+            for (const [key, val] of [
+              ["c1", g.c1],
+              ["c2", g.c2],
+            ]) {
+              const inp = drawPage?.querySelector<HTMLInputElement>(
+                `[data-color="${key}"]`,
+              );
+              if (inp) inp.value = val;
+            }
+            const ang = drawPage?.querySelector<HTMLInputElement>(
+              '[data-role="angle"]',
+            );
+            if (ang) ang.value = String(g.angle);
+            const sel = selectedText();
+            if (sel) {
+              sel.c1 = g.c1;
+              sel.c2 = g.c2;
+              sel.angle = g.angle;
+              repaint();
+            }
+            syncDrawUI();
+          }
+          return;
+        }
+        const sw = t.closest<HTMLElement>("[data-swatch]")?.dataset.swatch;
+        if (sw) {
+          pen.c1 = sw;
+          const c1 = drawPage?.querySelector<HTMLInputElement>('[data-color="c1"]');
+          if (c1) c1.value = sw;
+          const sel = selectedText();
+          if (sel) {
+            sel.c1 = sw;
+            repaint();
+          }
+          return;
+        }
+      });
+
+      drawTextInput?.addEventListener("input", () => {
+        pen.text = drawTextInput.value;
+        const sel = selectedText();
+        if (sel) {
+          sel.txt = pen.text;
+          repaint();
+        }
+      });
+
+      drawPage
+        ?.querySelector<HTMLInputElement>('[data-role="size"]')
+        ?.addEventListener("input", (e) => {
+          pen.sizePct = Number((e.target as HTMLInputElement).value);
+          const sel = selectedText();
+          if (sel) {
+            sel.sizePct = pen.sizePct;
+            repaint();
+          }
+          syncDrawUI();
+        });
+
+      drawPage
+        ?.querySelector<HTMLInputElement>('[data-role="angle"]')
+        ?.addEventListener("input", (e) => {
+          pen.angle = Number((e.target as HTMLInputElement).value);
+          const sel = selectedText();
+          if (sel) {
+            sel.angle = pen.angle;
+            repaint();
+          }
+          syncDrawUI();
+        });
+
+      for (const el of drawPage?.querySelectorAll<HTMLInputElement>(
+        "[data-color]",
+      ) || []) {
+        el.addEventListener("input", () => {
+          if (el.dataset.color === "c1") pen.c1 = el.value;
+          else pen.c2 = el.value;
+          const sel = selectedText();
+          if (sel) {
+            sel.c1 = pen.c1;
+            sel.c2 = pen.c2;
+            repaint();
+          }
+        });
+      }
+
+      // —— 画布指针交互 ——
+      function drawPoint(e: PointerEvent) {
+        const r = drawSurface.getBoundingClientRect();
+        return {
+          x: ((e.clientX - r.left) / Math.max(1, r.width)) * draw.W,
+          y: ((e.clientY - r.top) / Math.max(1, r.height)) * draw.H,
+        };
+      }
+
+      drawSurface.addEventListener("pointerdown", (e) => {
+        if (!draw.active) return;
+        e.preventDefault();
+        try {
+          drawSurface.setPointerCapture(e.pointerId);
+        } catch {
+          // 某些环境不支持指针捕获，忽略即可
+        }
+        const p = drawPoint(e);
+
+        if (pen.tool === "text") {
+          const hit = hitText(p);
+          if (hit) {
+            draw.selId = hit.id;
+            syncPenFromText(hit);
+            draw.drag = {
+              kind: "text",
+              id: hit.id,
+              gx: hit.x * draw.W - p.x,
+              gy: hit.y * draw.H - p.y,
+              moved: false,
+            };
+            repaint();
+            syncDrawUI();
+            return;
+          }
+          const txt = pen.text.trim();
+          if (!txt) {
+            statusEl!.textContent = "先在右侧「文字」里输入内容";
+            drawTextInput?.focus();
+            return;
+          }
+          const o = {
+            id: `t${Date.now()}${Math.random().toString(16).slice(2, 6)}`,
+            txt,
+            x: p.x / draw.W,
+            y: p.y / draw.H,
+            sizePct: pen.sizePct,
+            bold: pen.bold,
+            mode: pen.mode,
+            gtype: pen.gtype,
+            c1: pen.c1,
+            c2: pen.c2,
+            angle: pen.angle,
+          };
+          pushUndo();
+          setTextCenter(o, p.x, p.y);
+          draw.texts.push(o);
+          draw.selId = o.id;
+          draw.drag = { kind: "text", id: o.id, gx: 0, gy: 0, moved: false };
+          repaint();
+          syncDrawUI();
+          return;
+        }
+
+        if (pen.tool === "bucket") {
+          pushUndo();
+          floodFill(
+            draw.bctx as CanvasRenderingContext2D,
+            draw.W,
+            draw.H,
+            Math.min(draw.W - 1, Math.max(0, Math.floor(p.x))),
+            Math.min(draw.H - 1, Math.max(0, Math.floor(p.y))),
+            pen.c1,
+          );
+          repaint();
+          return;
+        }
+
+        draw.drag = { kind: "shape", x: p.x, y: p.y, cx: p.x, cy: p.y };
+        repaint();
+      });
+
+      drawSurface.addEventListener("pointermove", (e) => {
+        const d = draw.drag;
+        if (!draw.active || !d) return;
+        const p = drawPoint(e);
+
+        if (d.kind === "shape") {
+          d.cx = p.x;
+          d.cy = p.y;
+          repaint();
+          return;
+        }
+
+        const o = draw.texts.find((t) => t.id === d.id);
+        if (!o) return;
+        // 第一次真正移动才存快照，避免每次点一下都拍一张图
+        if (!d.moved) {
+          d.moved = true;
+          pushUndo();
+        }
+        setTextCenter(o, p.x + d.gx, p.y + d.gy);
+        repaint();
+      });
+
+      drawSurface.addEventListener("pointerup", (e) => {
+        const d = draw.drag;
+        draw.drag = null;
+        if (!d || d.kind !== "shape") {
+          repaint();
+          return;
+        }
+        const p = drawPoint(e);
+        const dx = p.x - d.x;
+        const dy = p.y - d.y;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          pushUndo();
+          paintShape(
+            draw.bctx as CanvasRenderingContext2D,
+            pen.shape,
+            d.x,
+            d.y,
+            dx,
+            dy,
+          );
+        }
+        repaint();
+      });
+
+      drawSurface.addEventListener("pointercancel", () => {
+        draw.drag = null;
+        repaint();
+      });
+
+      // 选中文字后的键盘微调
+      document.addEventListener("keydown", (e) => {
+        if (!draw.active) return;
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") {
+          if (e.key === "Escape") {
+            draw.selId = null;
+            repaint();
+            syncDrawUI();
+            (e.target as HTMLElement).blur();
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          draw.selId = null;
+          repaint();
+          syncDrawUI();
+          return;
+        }
+        const sel = selectedText();
+        if (!sel) return;
+        if (e.key === "Delete" || e.key === "Backspace") {
+          e.preventDefault();
+          deleteSelected();
+          return;
+        }
+        const step = e.shiftKey ? 10 : 1;
+        const delta: Record<string, [number, number]> = {
+          ArrowLeft: [-step, 0],
+          ArrowRight: [step, 0],
+          ArrowUp: [0, -step],
+          ArrowDown: [0, step],
+        };
+        const d = delta[e.key];
+        if (!d) return;
+        e.preventDefault();
+        if (!e.repeat) pushUndo();
+        setTextCenter(sel, sel.x * draw.W + d[0], sel.y * draw.H + d[1]);
+        repaint();
+      });
+
+      btnDrawOne.addEventListener("click", () => {
         const item = activeItem();
-        if (item) openDraw(item);
+        if (item) startDraw(item);
       });
 
       // ── 初始化 ────────────────────────────────────────

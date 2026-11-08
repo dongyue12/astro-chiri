@@ -1,0 +1,418 @@
+---
+import "@/styles/pages/rank-standalone.css";
+import "@/styles/pages/calc-tools.css";
+
+const title = "Windows 分区计算";
+const description =
+	"算清楚 Windows 新建分区时该填多少 MB：想让分区显示 100GB 就填 102401MB；也能反算填了某个 MB 值实际显示多大，以及一块硬盘能分出几个分区。";
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>{title} · 工具箱</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <script is:inline>
+      (function () {
+        var saved = null;
+        try {
+          saved = localStorage.getItem("tool-theme");
+        } catch (e) {}
+        if (saved === "light" || saved === "dark") {
+          document.documentElement.dataset.theme = saved;
+        } else {
+          document.documentElement.dataset.theme = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches
+            ? "dark"
+            : "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="tool-topbar">
+      <a class="tool-back" href="/tools/">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5Z"></path>
+        </svg>
+        工具箱
+      </a>
+      <h1 class="tool-title">{title}</h1>
+      <span class="tool-chip">纯本地计算</span>
+      <button
+        class="tool-theme-btn"
+        type="button"
+        id="tool-theme"
+        title="切换深色 / 浅色"
+        aria-label="切换深浅色主题"
+      >
+        <span class="tool-theme-icon" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <main class="tool-main">
+      <div class="tk-wrap">
+        <section class="tk-main">
+          <!-- 主功能：要显示多少，该填多少 MB -->
+          <div class="tk-card tk-card-hero">
+            <div class="tk-card-head">
+              <span class="tk-card-title">我想让这个分区显示</span>
+              <span class="tk-badge">磁盘管理 / diskpart</span>
+            </div>
+            <div class="tk-num">
+              <input
+                class="tk-input"
+                id="want"
+                type="number"
+                min="1"
+                step="1"
+                value="100"
+                inputmode="decimal"
+                aria-label="目标显示大小"
+              />
+              <select class="tk-unit" id="want-unit" aria-label="单位">
+                <option value="gb" selected>GB</option>
+                <option value="tb">TB</option>
+              </select>
+            </div>
+
+            <div class="tk-out-row">
+              <div>
+                <div class="tk-out"><span id="out-mb">102 401</span><span class="tk-unit-label">MB</span></div>
+                <div class="tk-sub">在「新建简单卷」的「简单卷大小」里填这个数</div>
+              </div>
+              <button class="tk-copy" type="button" id="copy-mb">复制</button>
+            </div>
+
+            <div class="tk-cmd">
+              <code id="cmd-text">create partition primary size=102401</code>
+              <button class="tk-copy tk-copy-sm" type="button" id="copy-cmd">复制</button>
+            </div>
+            <p class="tk-note" id="want-note">
+              NTFS 元数据约 1MB，多填 1MB 才能刚好显示 100GB。
+            </p>
+          </div>
+
+          <div class="tk-row">
+            <!-- 反算：填了 MB 显示多少 -->
+            <div class="tk-card">
+              <div class="tk-card-head">
+                <span class="tk-card-title">我已填了</span>
+              </div>
+              <div class="tk-num">
+                <input
+                  class="tk-input"
+                  id="mb-in"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="1024"
+                  inputmode="numeric"
+                  aria-label="已填 MB 数"
+                />
+                <span class="tk-unit tk-unit-static">MB</span>
+              </div>
+              <div class="tk-out tk-out-sm" id="mb-out">0.999 GB</div>
+              <p class="tk-sub" id="mb-sub">格式化后 Windows 显示约 1023 MB</p>
+            </div>
+
+            <!-- 整盘能分几个 -->
+            <div class="tk-card">
+              <div class="tk-card-head">
+                <span class="tk-card-title">整块硬盘能分几个</span>
+              </div>
+              <div class="tk-num">
+                <select class="tk-unit tk-unit-grow" id="disk" aria-label="硬盘标称容量">
+                  <option value="256">256 GB</option>
+                  <option value="500">500 GB</option>
+                  <option value="1000" selected>1 TB（1000 GB）</option>
+                  <option value="2000">2 TB</option>
+                  <option value="4000">4 TB</option>
+                  <option value="8000">8 TB</option>
+                </select>
+              </div>
+              <div class="tk-out tk-out-sm" id="disk-out">931.3 GB</div>
+              <p class="tk-sub" id="disk-sub">标称 1000 GB 的盘，Windows 里只认这么多</p>
+              <div class="tk-out tk-out-sm" id="disk-count">能分 9 个 100 GB</div>
+              <p class="tk-sub" id="disk-rest">剩下 31.3 GB</p>
+            </div>
+          </div>
+
+          <!-- 整盘分配预览 -->
+          <div class="tk-card tk-card-preview">
+            <div class="tk-card-head">
+              <span class="tk-card-title">整盘分下来长这样</span>
+              <label class="tk-check">
+                <input type="checkbox" id="as-system" />
+                <span>当系统盘（留 EFI / MSR / 恢复）</span>
+              </label>
+            </div>
+            <div class="tk-preview-body">
+              <div class="tk-bar" id="disk-bar"></div>
+              <div class="tk-legend" id="disk-legend"></div>
+              <div class="tk-parts" id="disk-parts"></div>
+            </div>
+            <p class="tk-note" id="preview-note">
+              最后一块未分配空间还能再建分区，或者留着以后扩容用。
+            </p>
+          </div>
+        </section>
+
+        <!-- 右侧参考 -->
+        <aside class="tk-side">
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">常用对照</span>
+            <table class="tk-table" id="ref-table">
+              <thead>
+                <tr><th>要显示</th><th>填 MB</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="tk-note">点一行直接套用。</p>
+          </div>
+
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">系统分区建议</span>
+            <ul class="tk-list">
+              <li><b>EFI</b> 300 MB</li>
+              <li><b>MSR</b> 16 MB，系统自动建，别动</li>
+              <li><b>恢复分区</b> 750 MB ~ 1 GB</li>
+              <li><b>C 盘</b> ≥ 150 GB，系统文件会吃掉 20~40 GB</li>
+            </ul>
+          </div>
+
+          <div class="tk-card tk-card-side">
+            <span class="tk-card-title">两个坑</span>
+            <ul class="tk-list">
+              <li>硬盘厂按十进制标容量，2TB 盘在 Windows 里只有 <b>1863 GB</b>。</li>
+              <li>SSD 必须 4K 对齐；Win10/11 自带工具默认 1MB 对齐，别用 XP 时代的 PE 分区。</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      const $ = (id: string) => document.getElementById(id) as HTMLElement;
+      const fmt = (n: number) =>
+        Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+      // 小数位跟着量级走，0.99 这种别被抹平成 1.00
+      function gb(n: number) {
+        const v = n >= 100 ? n.toFixed(1) : n >= 10 ? n.toFixed(2) : n.toFixed(3);
+        return `${v} GB`;
+      }
+
+      // Windows 里「填 m MB」实际显示 (m - 1) MiB，反推就是 +1
+      const needMb = (gib: number) => Math.round(gib * 1024) + 1;
+
+      const SYS_RESERVE_MIB = 300 + 16 + 750;
+
+      function currentGib() {
+        const unit = ($("want-unit") as HTMLSelectElement).value;
+        const raw = Number(($("want") as HTMLInputElement).value) || 0;
+        return unit === "tb" ? raw * 1024 : raw;
+      }
+
+      function render() {
+        const gib = currentGib();
+        const mb = Math.max(1, needMb(gib));
+
+        ($("out-mb")).textContent = fmt(mb);
+        $("cmd-text").textContent = `create partition primary size=${mb}`;
+        $("want-note").textContent =
+          gib > 0
+            ? `NTFS 元数据约 1MB，多填 1MB 才能刚好显示 ${gib % 1 === 0 ? gib : gib.toFixed(2)} GB。`
+            : "填个数字就能算。";
+
+        // 反算
+        const mbIn = Math.max(1, Number(($("mb-in") as HTMLInputElement).value) || 1);
+        const shownGib = Math.max(0, (mbIn - 1) / 1024);
+        $("mb-out").textContent =
+          shownGib >= 1024 ? `${(shownGib / 1024).toFixed(3)} TB` : gb(shownGib);
+        $("mb-sub").textContent = `格式化后 Windows 显示约 ${fmt(shownGib * 1024)} MB`;
+
+        // 整盘
+        const nominalGb = Number(($("disk") as HTMLSelectElement).value);
+        const totalMiB = (nominalGb * 1e9) / 1048576;
+        $("disk-out").textContent = gb(totalMiB / 1024);
+        $("disk-sub").textContent = `标称 ${nominalGb} GB 的盘，Windows 里只认这么多`;
+
+        const per = Math.max(1, needMb(gib));
+        const count = Math.floor(totalMiB / per);
+        const rest = totalMiB - count * per;
+        $("disk-count").textContent = gib
+          ? `能分 ${count} 个 ${gib % 1 === 0 ? gib : gib.toFixed(2)} GB`
+          : "先在上面填目标大小";
+        $("disk-rest").textContent = gib ? `剩下 ${gb(rest / 1024)}` : "";
+
+        renderPreview(totalMiB, per, gib);
+      }
+
+      function renderPreview(totalMiB: number, per: number, gib: number) {
+        const bar = $("disk-bar");
+        const legend = $("disk-legend");
+        const sys = ($("as-system") as HTMLInputElement).checked;
+        const reserve = sys ? SYS_RESERVE_MIB : 0;
+
+        const total = totalMiB;
+        const segs: { cls: string; mib: number; label: string }[] = [];
+        if (sys) segs.push({ cls: "sys", mib: reserve, label: "系统保留" });
+
+        const usable = Math.max(0, totalMiB - reserve);
+        const n = per > 0 ? Math.floor(usable / per) : 0;
+        const left = usable - n * per;
+
+        // 段太密就合并尾部，避免几百个细分段
+        const MAX = 12;
+        if (n <= MAX) {
+          for (let i = 0; i < n; i++) {
+            segs.push({ cls: "part", mib: per, label: `${gib % 1 === 0 ? gib : gib.toFixed(2)}G` });
+          }
+        } else {
+          for (let i = 0; i < MAX - 1; i++) {
+            segs.push({ cls: "part", mib: per, label: `${gib % 1 === 0 ? gib : gib.toFixed(2)}G` });
+          }
+          const bulk = (n - (MAX - 1)) * per;
+          segs.push({ cls: "part", mib: bulk, label: `×${n}` });
+        }
+        if (left > 1) segs.push({ cls: "rest", mib: left, label: "未分配" });
+
+        bar.innerHTML = segs
+          .map((s) => {
+            const pct = (s.mib / total) * 100;
+            const showLabel = pct >= 7;
+            return `<span class="tk-seg tk-seg-${s.cls}" style="width:${pct.toFixed(3)}%" title="${s.label} · ${fmt(s.mib)} MB">${
+              showLabel ? `<i>${s.label}</i>` : ""
+            }</span>`;
+          })
+          .join("");
+
+        const items = [
+          sys ? `<span><i class="tk-dot tk-dot-sys"></i>系统保留 ${fmt(reserve)} MB</span>` : "",
+          `<span><i class="tk-dot tk-dot-part"></i>数据分区 ${n} 个 × ${fmt(per)} MB</span>`,
+          left > 1 ? `<span><i class="tk-dot tk-dot-rest"></i>未分配 ${fmt(left)} MB</span>` : "",
+        ].filter(Boolean);
+        legend.innerHTML = items.join("");
+
+        // 分区清单：一行一个，MB 值可以直接照着填
+        const rows: string[] = [];
+        let idx = 1;
+        if (sys) {
+          rows.push(
+            `<div class="tk-part-row tk-part-sys"><span>系统保留</span><span>EFI+MSR+恢复</span><span>${fmt(reserve)} MB</span></div>`,
+          );
+        }
+        const shownN = Math.min(n, 40);
+        for (let i = 0; i < shownN; i++) {
+          rows.push(
+            `<div class="tk-part-row"><span>分区 ${idx++}</span><span>${gib % 1 === 0 ? gib : gib.toFixed(2)} GB</span><span>${fmt(per)} MB</span></div>`,
+          );
+        }
+        if (n > shownN) {
+          rows.push(
+            `<div class="tk-part-row tk-part-more"><span>…</span><span>还有 ${n - shownN} 个</span><span>${fmt((n - shownN) * per)} MB</span></div>`,
+          );
+        }
+        if (left > 1) {
+          rows.push(
+            `<div class="tk-part-row tk-part-rest"><span>未分配</span><span>${gb(left / 1024)}</span><span>${fmt(left)} MB</span></div>`,
+          );
+        }
+        $("disk-parts").innerHTML = rows.join("");
+
+        $("preview-note").textContent = sys
+          ? `系统盘还差 C 盘本身：EFI 300 + MSR 16 + 恢复 750 = ${fmt(reserve)} MB，这些由安装程序自动创建，先留在未分配空间里也一样。`
+          : "最后那块未分配空间还能再建分区，或者留着以后扩容用。";
+      }
+
+      function copy(text: string, btn: HTMLElement) {
+        const done = () => {
+          const old = btn.textContent;
+          btn.textContent = "已复制";
+          setTimeout(() => (btn.textContent = old), 1200);
+        };
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text).then(done, () => {});
+          return;
+        }
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        done();
+      }
+
+      $("want").addEventListener("input", render);
+      $("want-unit").addEventListener("change", render);
+      $("mb-in").addEventListener("input", render);
+      $("disk").addEventListener("change", render);
+      $("as-system").addEventListener("change", render);
+      $("copy-mb").addEventListener("click", () =>
+        copy(($("out-mb").textContent || "").replace(/\s/g, ""), $("copy-mb")),
+      );
+      $("copy-cmd").addEventListener("click", () =>
+        copy($("cmd-text").textContent || "", $("copy-cmd")),
+      );
+
+      // 常用对照表
+      const REF = [50, 60, 80, 100, 120, 150, 200, 256, 300, 500, 1000];
+      const tbody = document.querySelector("#ref-table tbody");
+      if (tbody) {
+        tbody.innerHTML = REF.map(
+          (g) =>
+            `<tr data-gb="${g}"><td>${g} GB</td><td><code>${fmt(needMb(g))}</code></td></tr>`,
+        ).join("");
+        tbody.addEventListener("click", (e) => {
+          const tr = (e.target as HTMLElement).closest("tr");
+          if (!tr) return;
+          ($("want") as HTMLInputElement).value = tr.dataset.gb || "100";
+          ($("want-unit") as HTMLSelectElement).value = "gb";
+          render();
+        });
+      }
+
+      render();
+    </script>
+
+    <script>
+      const SUN = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-1-11V2h2v2h-2Zm0 18v-2h2v2h-2ZM4 13H2v-2h2v2Zm18 0h-2v-2h2v2ZM5.6 7 4.2 5.6 5.6 4.2 7 5.6 5.6 7Zm12.8 12.8-1.4-1.4 1.4-1.4 1.4 1.4-1.4 1.4ZM5.6 17l1.4 1.4-1.4 1.4L4.2 18.4 5.6 17ZM18.4 7l-1.4-1.4 1.4-1.4 1.4 1.4L18.4 7Z"/></svg>`;
+      const MOON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21q-3.75 0-6.375-2.625T3 12q0-3.75 2.625-6.375T12 3q.35 0 .688.025.337.025.662.075-.5.725-.762 1.55Q12.3 5.475 12.3 6.35q0 2.35 1.675 4.025Q15.65 12.05 18 12.05q.875 0 1.7-.263.825-.262 1.55-.762.05.325.075.663.075.337.075.712 0 3.75-2.625 6.375T12 21Z"/></svg>`;
+
+      const themeBtn = document.getElementById("tool-theme");
+      const themeIcon = themeBtn?.querySelector<HTMLElement>(".tool-theme-icon");
+
+      function syncThemeIcon() {
+        if (!themeIcon) return;
+        themeIcon.innerHTML =
+          document.documentElement.dataset.theme === "dark" ? SUN : MOON;
+      }
+
+      themeBtn?.addEventListener("click", () => {
+        const next =
+          document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem("tool-theme", next);
+        } catch {
+          // 隐私模式存不了，忽略
+        }
+        syncThemeIcon();
+      });
+
+      syncThemeIcon();
+    </script>
+  </body>
+</html>
