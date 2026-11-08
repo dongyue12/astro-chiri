@@ -3,3 +3,6 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+  # fabric 带进来的 node-canvas，只在 Node 端渲染才需要
+  # 浏览器端用不到，明确关掉，否则 pnpm 会因「有未批准的构建脚本」直接报错退出
+  canvas: false
