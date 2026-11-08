@@ -259,6 +259,25 @@
 	background-color: var(--btn-plain-bg-hover);
 }
 
+.tk-table tbody tr.is-active {
+	background-color: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+.tk-table tbody tr.is-active td {
+	color: var(--deep-text);
+	font-weight: 600;
+}
+
+.tk-table-compact {
+	font-size: 0.74rem;
+}
+
+.tk-table-compact th,
+.tk-table-compact td {
+	padding-top: 0.14rem;
+	padding-bottom: 0.14rem;
+}
+
 .tk-table code {
 	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 	font-size: 0.76rem;
@@ -287,185 +306,6 @@
 	flex: 1 1 0;
 	min-height: 150px;
 	gap: 0.7rem;
-}
-
-.tk-preview-body {
-	flex: 1 1 auto;
-	min-height: 0;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	gap: 0.7rem;
-}
-
-/* 分区清单：多的时候内部滚动，不顶开整页 */
-.tk-parts {
-	flex: 1 1 auto;
-	min-height: 2.4rem;
-	overflow-y: auto;
-	overscroll-behavior: contain;
-	padding-right: 2px;
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-}
-
-.tk-part-row {
-	display: grid;
-	grid-template-columns: 1fr auto auto;
-	align-items: center;
-	gap: 0.6rem;
-	padding: 0.22rem 0.45rem;
-	border-radius: 0.35rem;
-	background-color: var(--tool-bg);
-	font-size: 0.75rem;
-	color: var(--content-meta);
-	font-variant-numeric: tabular-nums;
-}
-
-.tk-part-row span:last-child {
-	color: var(--deep-text);
-	font-weight: 700;
-	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-	font-size: 0.73rem;
-}
-
-.tk-part-row span:nth-child(2) {
-	color: var(--content-meta);
-}
-
-.tk-part-sys {
-	background-color: var(--btn-regular-bg);
-}
-
-.tk-part-rest {
-	background-image: repeating-linear-gradient(
-		135deg,
-		var(--line-divider) 0 5px,
-		transparent 5px 10px
-	);
-	background-color: transparent;
-}
-
-.tk-part-more span {
-	opacity: 0.7;
-}
-
-.tk-check {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	font-size: 0.74rem;
-	color: var(--content-meta);
-	cursor: pointer;
-	white-space: nowrap;
-}
-
-.tk-check input {
-	accent-color: var(--primary);
-	cursor: pointer;
-}
-
-.tk-bar {
-	display: flex;
-	align-items: stretch;
-	height: clamp(38px, 7vh, 62px);
-	border-radius: 0.55rem;
-	overflow: hidden;
-	background-color: var(--tool-bg);
-	border: 1px solid var(--line-divider);
-}
-
-.tk-seg {
-	position: relative;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 2px;
-	overflow: hidden;
-	box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.45);
-}
-
-.tk-seg i {
-	font-style: normal;
-	font-size: 0.68rem;
-	font-weight: 700;
-	letter-spacing: -0.01em;
-	color: #fff;
-	white-space: nowrap;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-}
-
-.tk-seg-part {
-	background-color: var(--primary);
-}
-
-.tk-seg-part:nth-child(even) {
-	filter: brightness(0.92);
-}
-
-.tk-seg-sys {
-	min-width: 9px;
-	background-color: var(--btn-regular-bg);
-	box-shadow: inset -1px 0 0 var(--line-divider);
-}
-
-.tk-seg-sys i {
-	color: var(--btn-content);
-	text-shadow: none;
-}
-
-.tk-seg-rest {
-	background-color: transparent;
-	background-image: repeating-linear-gradient(
-		135deg,
-		var(--line-divider) 0 6px,
-		transparent 6px 12px
-	);
-}
-
-.tk-seg-rest i {
-	color: var(--content-meta);
-	text-shadow: none;
-}
-
-.tk-legend {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.35rem 0.9rem;
-	font-size: 0.74rem;
-	color: var(--content-meta);
-}
-
-.tk-legend span {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-}
-
-.tk-dot {
-	display: inline-block;
-	width: 0.6rem;
-	height: 0.6rem;
-	border-radius: 0.15rem;
-}
-
-.tk-dot-part {
-	background-color: var(--primary);
-}
-
-.tk-dot-sys {
-	background-color: var(--btn-regular-bg);
-	box-shadow: inset 0 0 0 1px var(--line-divider);
-}
-
-.tk-dot-rest {
-	background-image: repeating-linear-gradient(
-		135deg,
-		var(--line-divider) 0 3px,
-		transparent 3px 6px
-	);
-	box-shadow: inset 0 0 0 1px var(--line-divider);
 }
 
 .tk-unit-label {

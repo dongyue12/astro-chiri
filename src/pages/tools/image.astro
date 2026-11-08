@@ -1587,12 +1587,13 @@ const description =
         y: number,
         w: number,
         h: number,
+        styleSrc?: any,
       ) {
         const nx = Math.min(x, x + w);
         const ny = Math.min(y, y + h);
         const nw = Math.abs(w);
         const nh = Math.abs(h);
-        const style = styleFor(ctx, pen, nx, ny, nw, nh);
+        const style = styleFor(ctx, styleSrc || pen, nx, ny, nw, nh);
 
         if (kind === "arrow") {
           const ex = x + w;
@@ -1706,9 +1707,15 @@ const description =
         W: 0,
         H: 0,
         texts: [] as any[],
+        shapes: [] as any[],
         selId: null as string | null,
         drag: null as any,
-        undo: [] as { canvas: HTMLCanvasElement; texts: any[]; selId: string | null }[],
+        undo: [] as {
+          canvas: HTMLCanvasElement;
+          texts: any[];
+          shapes: any[];
+          selId: string | null;
+        }[],
         maxUndo: 12,
       };
 
@@ -1767,9 +1774,32 @@ const description =
         ctx.restore();
       }
 
-      // 选中框：虚线 + 四角小方块，方便看出文字范围
-      function paintSelection(ctx: CanvasRenderingContext2D, o: any) {
-        const b = textBox(o);
+      // 形状在画布上的像素坐标，保留拖拽方向（w/h 可能为负，箭头要靠它定方向）
+      function shapeRaw(o: any) {
+        return {
+          x: o.x * draw.W,
+          y: o.y * draw.H,
+          w: o.w * draw.W,
+          h: o.h * draw.H,
+        };
+      }
+
+      // 形状的规范化包围盒，用于命中判断与选中框
+      function shapeBox(o: any) {
+        const r = shapeRaw(o);
+        const x = Math.min(r.x, r.x + r.w);
+        const y = Math.min(r.y, r.y + r.h);
+        const w = Math.abs(r.w);
+        const h = Math.abs(r.h);
+        return { x, y, w, h, cx: x + w / 2, cy: y + h / 2 };
+      }
+
+      function objBox(o: any) {
+        return o && o.kind ? shapeBox(o) : textBox(o);
+      }
+
+      // 选中框：虚线 + 四角小方块，方便看出对象范围
+      function paintSelection(ctx: CanvasRenderingContext2D, b: any) {
         const pad = Math.max(6, Math.round(draw.W / 260));
         const lw = Math.max(2, Math.round(draw.W / 620));
         const x = b.x - pad;
@@ -1799,36 +1829,56 @@ const description =
         return draw.texts.find((o) => o.id === draw.selId) || null;
       }
 
-      // 选中一段文字后，把它的属性回填到侧栏，改起来才对得上
-      function syncPenFromText(o: any) {
+      function selectedShape() {
+        return draw.shapes.find((o) => o.id === draw.selId) || null;
+      }
+
+      // 当前选中对象：文字或形状
+      function selectedObject(): any {
+        return selectedText() || selectedShape();
+      }
+
+      // 选中对象后把它的属性回填到侧栏，改颜色/渐变才对得上
+      function syncPenFromObject(o: any) {
         if (!o) return;
-        pen.text = o.txt;
-        pen.sizePct = o.sizePct;
-        pen.bold = o.bold;
         pen.mode = o.mode === "gradient" ? "gradient" : "solid";
         pen.gtype = o.gtype === "radial" ? "radial" : "linear";
         pen.c1 = o.c1;
         pen.c2 = o.c2;
         pen.angle = o.angle;
 
-        if (drawTextInput) drawTextInput.value = o.txt;
-        const size = drawPage?.querySelector<HTMLInputElement>('[data-role="size"]');
-        if (size) size.value = String(o.sizePct);
         const ang = drawPage?.querySelector<HTMLInputElement>('[data-role="angle"]');
         if (ang) ang.value = String(o.angle);
         for (const inp of drawPage?.querySelectorAll<HTMLInputElement>("[data-color]") || []) {
           if (inp.dataset.color === "c1") inp.value = o.c1;
           else inp.value = o.c2;
         }
+
+        // 形状只共用取色，文字那套字号/内容跟它无关
+        if (o.kind) {
+          pen.shape = o.kind;
+          return;
+        }
+
+        pen.text = o.txt;
+        pen.sizePct = o.sizePct;
+        pen.bold = o.bold;
+        if (drawTextInput) drawTextInput.value = o.txt;
+        const size = drawPage?.querySelector<HTMLInputElement>('[data-role="size"]');
+        if (size) size.value = String(o.sizePct);
       }
 
       function repaint() {
         if (!draw.base) return;
         sctx.clearRect(0, 0, draw.W, draw.H);
         sctx.drawImage(draw.base, 0, 0);
+        for (const o of draw.shapes) {
+          const r = shapeRaw(o);
+          paintShape(sctx, o.kind, r.x, r.y, r.w, r.h, o);
+        }
         for (const o of draw.texts) paintText(sctx, o);
-        const sel = selectedText();
-        if (sel) paintSelection(sctx, sel);
+        const sel = selectedObject();
+        if (sel) paintSelection(sctx, objBox(sel));
         const d = draw.drag;
         if (d && d.kind === "shape") {
           paintShape(sctx, pen.shape, d.x, d.y, d.cx - d.x, d.cy - d.y);
@@ -1852,6 +1902,28 @@ const description =
         return null;
       }
 
+      function hitShape(p: { x: number; y: number }) {
+        const pad = Math.max(4, Math.round(draw.W / 420));
+        for (let i = draw.shapes.length - 1; i >= 0; i--) {
+          const o = draw.shapes[i];
+          const b = shapeBox(o);
+          if (
+            p.x >= b.x - pad &&
+            p.x <= b.x + b.w + pad &&
+            p.y >= b.y - pad &&
+            p.y <= b.y + b.h + pad
+          ) {
+            return o;
+          }
+        }
+        return null;
+      }
+
+      // 文字画在形状之上，命中判断也按这个顺序
+      function hitObject(p: { x: number; y: number }) {
+        return hitText(p) || hitShape(p);
+      }
+
       // 让文字整体留在画布内
       function setTextCenter(o: any, cx: number, cy: number) {
         const b = textBox(o);
@@ -1859,6 +1931,18 @@ const description =
         const hy = Math.min(draw.H / 2, b.h / 2 + 2);
         o.x = Math.min(Math.max(cx, hx), draw.W - hx) / draw.W;
         o.y = Math.min(Math.max(cy, hy), draw.H - hy) / draw.H;
+      }
+
+      // 让形状整体留在画布内（w/h 可能为负，按原始点与包围盒的偏移换算）
+      function setShapeOrigin(o: any, tx: number, ty: number) {
+        const r = shapeRaw(o);
+        const b = shapeBox(o);
+        const ox = r.x - b.x;
+        const oy = r.y - b.y;
+        const nx = Math.min(Math.max(tx, 0), Math.max(0, draw.W - b.w));
+        const ny = Math.min(Math.max(ty, 0), Math.max(0, draw.H - b.h));
+        o.x = (nx + ox) / draw.W;
+        o.y = (ny + oy) / draw.H;
       }
 
       function pushUndo() {
@@ -1870,6 +1954,7 @@ const description =
         draw.undo.push({
           canvas: c,
           texts: draw.texts.map((o) => ({ ...o })),
+          shapes: draw.shapes.map((o) => ({ ...o })),
           selId: draw.selId,
         });
         if (draw.undo.length > draw.maxUndo) draw.undo.shift();
@@ -1881,6 +1966,7 @@ const description =
         draw.bctx.clearRect(0, 0, draw.W, draw.H);
         draw.bctx.drawImage(s.canvas, 0, 0);
         draw.texts = s.texts.map((o: any) => ({ ...o }));
+        draw.shapes = (s.shapes || []).map((o: any) => ({ ...o }));
         draw.selId = s.selId;
         repaint();
         syncDrawUI();
@@ -1936,15 +2022,18 @@ const description =
         setUndoDisabled();
 
         const hasSel = !!draw.selId;
+        const selIsShape = !!selectedShape();
         drawHintEl.textContent = !draw.active
           ? ""
-          : pen.tool === "text"
-            ? hasSel
-              ? "拖动文字改位置 · 方向键微调 · Esc 取消选中"
-              : "点画布放文字，放好后可拖动"
-            : pen.tool === "shape"
-              ? "按住拖动画出形状"
-              : "点同色区域一次填色";
+          : hasSel
+            ? selIsShape
+              ? "拖动形状改位置 · 方向键微调 · Delete 删除"
+              : "拖动文字改位置 · 方向键微调 · Esc 取消选中"
+            : pen.tool === "text"
+              ? "点画布放文字，放好后可拖动"
+              : pen.tool === "shape"
+                ? "按住拖动画形状 · 点已有形状可拖动"
+                : "点同色区域一次填色";
       }
 
       const MAX_DRAW_EDGE = 2400;
@@ -1976,6 +2065,7 @@ const description =
         draw.W = W;
         draw.H = H;
         draw.texts = [];
+        draw.shapes = [];
         draw.selId = null;
         draw.drag = null;
         draw.undo = [];
@@ -2008,6 +2098,10 @@ const description =
           out.height = draw.H;
           const octx = out.getContext("2d") as CanvasRenderingContext2D;
           octx.drawImage(draw.base, 0, 0);
+          for (const o of draw.shapes) {
+            const r = shapeRaw(o);
+            paintShape(octx, o.kind, r.x, r.y, r.w, r.h, o);
+          }
           for (const o of draw.texts) paintText(octx, o);
           const blob = await new Promise<Blob | null>((r) =>
             out.toBlob(r, "image/png"),
@@ -2029,6 +2123,7 @@ const description =
         draw.base = null;
         draw.bctx = null;
         draw.texts = [];
+        draw.shapes = [];
         draw.selId = null;
         draw.drag = null;
         draw.undo = [];
@@ -2054,10 +2149,11 @@ const description =
       }
 
       function deleteSelected() {
-        const sel = selectedText();
+        const sel = selectedObject();
         if (!sel) return;
         pushUndo();
         draw.texts = draw.texts.filter((o) => o.id !== sel.id);
+        draw.shapes = draw.shapes.filter((o) => o.id !== sel.id);
         draw.selId = null;
         repaint();
         syncDrawUI();
@@ -2091,6 +2187,7 @@ const description =
           draw.bctx?.clearRect(0, 0, draw.W, draw.H);
           if (draw.bctx) draw.bctx.drawImage(draw.item.bitmap, 0, 0, draw.W, draw.H);
           draw.texts = [];
+          draw.shapes = [];
           draw.selId = null;
           repaint();
           syncDrawUI();
@@ -2124,7 +2221,7 @@ const description =
         const mode = t.closest<HTMLElement>("[data-mode]")?.dataset.mode;
         if (mode === "solid" || mode === "gradient") {
           pen.mode = mode;
-          const sel = selectedText();
+          const sel = selectedObject();
           if (sel) {
             sel.mode = mode;
             repaint();
@@ -2135,13 +2232,18 @@ const description =
         const shape = t.closest<HTMLElement>("[data-shape]")?.dataset.shape;
         if (shape) {
           pen.shape = shape;
+          const sel = selectedShape();
+          if (sel) {
+            sel.kind = shape;
+            repaint();
+          }
           syncDrawUI();
           return;
         }
         const gt = t.closest<HTMLElement>("[data-gtype]")?.dataset.gtype;
         if (gt === "linear" || gt === "radial") {
           pen.gtype = gt;
-          const sel = selectedText();
+          const sel = selectedObject();
           if (sel) {
             sel.gtype = gt;
             repaint();
@@ -2169,7 +2271,7 @@ const description =
               '[data-role="angle"]',
             );
             if (ang) ang.value = String(g.angle);
-            const sel = selectedText();
+            const sel = selectedObject();
             if (sel) {
               sel.c1 = g.c1;
               sel.c2 = g.c2;
@@ -2185,7 +2287,7 @@ const description =
           pen.c1 = sw;
           const c1 = drawPage?.querySelector<HTMLInputElement>('[data-color="c1"]');
           if (c1) c1.value = sw;
-          const sel = selectedText();
+          const sel = selectedObject();
           if (sel) {
             sel.c1 = sw;
             repaint();
@@ -2219,7 +2321,7 @@ const description =
         ?.querySelector<HTMLInputElement>('[data-role="angle"]')
         ?.addEventListener("input", (e) => {
           pen.angle = Number((e.target as HTMLInputElement).value);
-          const sel = selectedText();
+          const sel = selectedObject();
           if (sel) {
             sel.angle = pen.angle;
             repaint();
@@ -2233,7 +2335,7 @@ const description =
         el.addEventListener("input", () => {
           if (el.dataset.color === "c1") pen.c1 = el.value;
           else pen.c2 = el.value;
-          const sel = selectedText();
+          const sel = selectedObject();
           if (sel) {
             sel.c1 = pen.c1;
             sel.c2 = pen.c2;
@@ -2261,22 +2363,38 @@ const description =
         }
         const p = drawPoint(e);
 
-        if (pen.tool === "text") {
-          const hit = hitText(p);
+        // 点中已有对象就拖动它：文字在上层先命中，其次形状
+        if (pen.tool === "text" || pen.tool === "shape") {
+          const hit = hitObject(p);
           if (hit) {
             draw.selId = hit.id;
-            syncPenFromText(hit);
-            draw.drag = {
-              kind: "text",
-              id: hit.id,
-              gx: hit.x * draw.W - p.x,
-              gy: hit.y * draw.H - p.y,
-              moved: false,
-            };
+            pen.tool = hit.kind ? "shape" : "text";
+            syncPenFromObject(hit);
+            if (hit.kind) {
+              const b = shapeBox(hit);
+              draw.drag = {
+                kind: "obj",
+                id: hit.id,
+                gx: b.x - p.x,
+                gy: b.y - p.y,
+                moved: false,
+              };
+            } else {
+              draw.drag = {
+                kind: "text",
+                id: hit.id,
+                gx: hit.x * draw.W - p.x,
+                gy: hit.y * draw.H - p.y,
+                moved: false,
+              };
+            }
             repaint();
             syncDrawUI();
             return;
           }
+        }
+
+        if (pen.tool === "text") {
           const txt = pen.text.trim();
           if (!txt) {
             statusEl!.textContent = "先在右侧「文字」里输入内容";
@@ -2336,6 +2454,18 @@ const description =
           return;
         }
 
+        if (d.kind === "obj") {
+          const o = draw.shapes.find((t) => t.id === d.id);
+          if (!o) return;
+          if (!d.moved) {
+            d.moved = true;
+            pushUndo();
+          }
+          setShapeOrigin(o, p.x + d.gx, p.y + d.gy);
+          repaint();
+          return;
+        }
+
         const o = draw.texts.find((t) => t.id === d.id);
         if (!o) return;
         // 第一次真正移动才存快照，避免每次点一下都拍一张图
@@ -2359,16 +2489,25 @@ const description =
         const dy = p.y - d.y;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
           pushUndo();
-          paintShape(
-            draw.bctx as CanvasRenderingContext2D,
-            pen.shape,
-            d.x,
-            d.y,
-            dx,
-            dy,
-          );
+          const id = `s${Date.now()}${Math.random().toString(16).slice(2, 6)}`;
+          draw.shapes.push({
+            id,
+            kind: pen.shape,
+            x: d.x / draw.W,
+            y: d.y / draw.H,
+            w: dx / draw.W,
+            h: dy / draw.H,
+            mode: pen.mode,
+            gtype: pen.gtype,
+            c1: pen.c1,
+            c2: pen.c2,
+            angle: pen.angle,
+          });
+          // 画完不自动选中，免得接着换形状或颜色时误改这一笔
+          draw.selId = null;
         }
         repaint();
+        syncDrawUI();
       });
 
       drawSurface.addEventListener("pointercancel", () => {
@@ -2395,7 +2534,7 @@ const description =
           syncDrawUI();
           return;
         }
-        const sel = selectedText();
+        const sel = selectedObject();
         if (!sel) return;
         if (e.key === "Delete" || e.key === "Backspace") {
           e.preventDefault();
@@ -2413,7 +2552,12 @@ const description =
         if (!d) return;
         e.preventDefault();
         if (!e.repeat) pushUndo();
-        setTextCenter(sel, sel.x * draw.W + d[0], sel.y * draw.H + d[1]);
+        if (sel.kind) {
+          const b = shapeBox(sel);
+          setShapeOrigin(sel, b.x + d[0], b.y + d[1]);
+        } else {
+          setTextCenter(sel, sel.x * draw.W + d[0], sel.y * draw.H + d[1]);
+        }
         repaint();
       });
 

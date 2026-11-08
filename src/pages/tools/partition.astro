@@ -4,7 +4,7 @@ import "@/styles/pages/calc-tools.css";
 
 const title = "Windows 分区计算";
 const description =
-	"算清楚 Windows 新建分区时该填多少 MB：想让分区显示 100GB 就填 102401MB；也能反算填了某个 MB 值实际显示多大，以及一块硬盘能分出几个分区。";
+	"算清楚 Windows 新建分区时该填多少 MB：想让分区显示 100GB 就填 102401MB；也能反算填了某个 MB 值实际显示多大，顺便看硬盘标称容量在 Windows 里认多少。";
 ---
 
 <!DOCTYPE html>
@@ -126,10 +126,10 @@ const description =
               <p class="tk-sub" id="mb-sub">格式化后 Windows 显示约 1023 MB</p>
             </div>
 
-            <!-- 整盘能分几个 -->
+            <!-- 硬盘实际容量 -->
             <div class="tk-card">
               <div class="tk-card-head">
-                <span class="tk-card-title">整块硬盘能分几个</span>
+                <span class="tk-card-title">硬盘实际容量</span>
               </div>
               <div class="tk-num">
                 <select class="tk-unit tk-unit-grow" id="disk" aria-label="硬盘标称容量">
@@ -143,28 +143,13 @@ const description =
               </div>
               <div class="tk-out tk-out-sm" id="disk-out">931.3 GB</div>
               <p class="tk-sub" id="disk-sub">标称 1000 GB 的盘，Windows 里只认这么多</p>
-              <div class="tk-out tk-out-sm" id="disk-count">能分 9 个 100 GB</div>
-              <p class="tk-sub" id="disk-rest">剩下 31.3 GB</p>
+              <table class="tk-table tk-table-compact" id="disk-table">
+                <thead>
+                  <tr><th>标称</th><th>Windows 认</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
-          </div>
-
-          <!-- 整盘分配预览 -->
-          <div class="tk-card tk-card-preview">
-            <div class="tk-card-head">
-              <span class="tk-card-title">整盘分下来长这样</span>
-              <label class="tk-check">
-                <input type="checkbox" id="as-system" />
-                <span>当系统盘（留 EFI / MSR / 恢复）</span>
-              </label>
-            </div>
-            <div class="tk-preview-body">
-              <div class="tk-bar" id="disk-bar"></div>
-              <div class="tk-legend" id="disk-legend"></div>
-              <div class="tk-parts" id="disk-parts"></div>
-            </div>
-            <p class="tk-note" id="preview-note">
-              最后一块未分配空间还能再建分区，或者留着以后扩容用。
-            </p>
           </div>
         </section>
 
@@ -242,98 +227,25 @@ const description =
           shownGib >= 1024 ? `${(shownGib / 1024).toFixed(3)} TB` : gb(shownGib);
         $("mb-sub").textContent = `格式化后 Windows 显示约 ${fmt(shownGib * 1024)} MB`;
 
-        // 整盘
+        // 硬盘实际容量
         const nominalGb = Number(($("disk") as HTMLSelectElement).value);
         const totalMiB = (nominalGb * 1e9) / 1048576;
         $("disk-out").textContent = gb(totalMiB / 1024);
         $("disk-sub").textContent = `标称 ${nominalGb} GB 的盘，Windows 里只认这么多`;
-
-        const per = Math.max(1, needMb(gib));
-        const count = Math.floor(totalMiB / per);
-        const rest = totalMiB - count * per;
-        $("disk-count").textContent = gib
-          ? `能分 ${count} 个 ${gib % 1 === 0 ? gib : gib.toFixed(2)} GB`
-          : "先在上面填目标大小";
-        $("disk-rest").textContent = gib ? `剩下 ${gb(rest / 1024)}` : "";
-
-        renderPreview(totalMiB, per, gib);
+        renderDiskTable(nominalGb);
       }
 
-      function renderPreview(totalMiB: number, per: number, gib: number) {
-        const bar = $("disk-bar");
-        const legend = $("disk-legend");
-        const sys = ($("as-system") as HTMLInputElement).checked;
-        const reserve = sys ? SYS_RESERVE_MIB : 0;
+      // 常见标称容量与实际显示值的对照
+      const DISK_SIZES = [256, 500, 1000, 2000, 4000, 8000];
 
-        const total = totalMiB;
-        const segs: { cls: string; mib: number; label: string }[] = [];
-        if (sys) segs.push({ cls: "sys", mib: reserve, label: "系统保留" });
-
-        const usable = Math.max(0, totalMiB - reserve);
-        const n = per > 0 ? Math.floor(usable / per) : 0;
-        const left = usable - n * per;
-
-        // 段太密就合并尾部，避免几百个细分段
-        const MAX = 12;
-        if (n <= MAX) {
-          for (let i = 0; i < n; i++) {
-            segs.push({ cls: "part", mib: per, label: `${gib % 1 === 0 ? gib : gib.toFixed(2)}G` });
-          }
-        } else {
-          for (let i = 0; i < MAX - 1; i++) {
-            segs.push({ cls: "part", mib: per, label: `${gib % 1 === 0 ? gib : gib.toFixed(2)}G` });
-          }
-          const bulk = (n - (MAX - 1)) * per;
-          segs.push({ cls: "part", mib: bulk, label: `×${n}` });
-        }
-        if (left > 1) segs.push({ cls: "rest", mib: left, label: "未分配" });
-
-        bar.innerHTML = segs
-          .map((s) => {
-            const pct = (s.mib / total) * 100;
-            const showLabel = pct >= 7;
-            return `<span class="tk-seg tk-seg-${s.cls}" style="width:${pct.toFixed(3)}%" title="${s.label} · ${fmt(s.mib)} MB">${
-              showLabel ? `<i>${s.label}</i>` : ""
-            }</span>`;
-          })
-          .join("");
-
-        const items = [
-          sys ? `<span><i class="tk-dot tk-dot-sys"></i>系统保留 ${fmt(reserve)} MB</span>` : "",
-          `<span><i class="tk-dot tk-dot-part"></i>数据分区 ${n} 个 × ${fmt(per)} MB</span>`,
-          left > 1 ? `<span><i class="tk-dot tk-dot-rest"></i>未分配 ${fmt(left)} MB</span>` : "",
-        ].filter(Boolean);
-        legend.innerHTML = items.join("");
-
-        // 分区清单：一行一个，MB 值可以直接照着填
-        const rows: string[] = [];
-        let idx = 1;
-        if (sys) {
-          rows.push(
-            `<div class="tk-part-row tk-part-sys"><span>系统保留</span><span>EFI+MSR+恢复</span><span>${fmt(reserve)} MB</span></div>`,
-          );
-        }
-        const shownN = Math.min(n, 40);
-        for (let i = 0; i < shownN; i++) {
-          rows.push(
-            `<div class="tk-part-row"><span>分区 ${idx++}</span><span>${gib % 1 === 0 ? gib : gib.toFixed(2)} GB</span><span>${fmt(per)} MB</span></div>`,
-          );
-        }
-        if (n > shownN) {
-          rows.push(
-            `<div class="tk-part-row tk-part-more"><span>…</span><span>还有 ${n - shownN} 个</span><span>${fmt((n - shownN) * per)} MB</span></div>`,
-          );
-        }
-        if (left > 1) {
-          rows.push(
-            `<div class="tk-part-row tk-part-rest"><span>未分配</span><span>${gb(left / 1024)}</span><span>${fmt(left)} MB</span></div>`,
-          );
-        }
-        $("disk-parts").innerHTML = rows.join("");
-
-        $("preview-note").textContent = sys
-          ? `系统盘还差 C 盘本身：EFI 300 + MSR 16 + 恢复 750 = ${fmt(reserve)} MB，这些由安装程序自动创建，先留在未分配空间里也一样。`
-          : "最后那块未分配空间还能再建分区，或者留着以后扩容用。";
+      function renderDiskTable(active: number) {
+        const body = document.querySelector("#disk-table tbody");
+        if (!body) return;
+        body.innerHTML = DISK_SIZES.map((n) => {
+          const g = (n * 1e9) / 1048576 / 1024;
+          const label = n >= 1000 ? `${n / 1000} TB` : `${n} GB`;
+          return `<tr data-disk="${n}"${n === active ? ' class="is-active"' : ""}><td>${label}</td><td>${g.toFixed(1)} GB</td></tr>`;
+        }).join("");
       }
 
       function copy(text: string, btn: HTMLElement) {
@@ -359,7 +271,12 @@ const description =
       $("want-unit").addEventListener("change", render);
       $("mb-in").addEventListener("input", render);
       $("disk").addEventListener("change", render);
-      $("as-system").addEventListener("change", render);
+      document.querySelector("#disk-table")?.addEventListener("click", (e) => {
+        const tr = (e.target as HTMLElement).closest("tr") as HTMLElement | null;
+        if (!tr?.dataset.disk) return;
+        ($("disk") as HTMLSelectElement).value = tr.dataset.disk;
+        render();
+      });
       $("copy-mb").addEventListener("click", () =>
         copy(($("out-mb").textContent || "").replace(/\s/g, ""), $("copy-mb")),
       );
