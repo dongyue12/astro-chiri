@@ -1282,6 +1282,13 @@ const description =
         { id: "arrow", name: "箭头" },
       ];
 
+      const GRADIENT_PRESETS = [
+        { c1: "#ff9a3c", c2: "#ff5f6d", angle: 45 },
+        { c1: "#00c6ff", c2: "#0072ff", angle: 135 },
+        { c1: "#7bf1a8", c2: "#1e90ff", angle: 90 },
+        { c1: "#c471ed", c2: "#f64f59", angle: 30 },
+      ];
+
       const SWATCHES = [
         "#ffffff",
         "#111111",
@@ -1603,6 +1610,12 @@ const description =
                       `<button class="swatch" type="button" data-swatch="${c}" style="background:${c}" title="${c}" aria-label="${c}"></button>`,
                   ).join("")}
                 </div>
+                <div class="swatches" data-when="gradient" hidden>
+                  ${GRADIENT_PRESETS.map(
+                    (g, i) =>
+                      `<button class="swatch" type="button" data-gpreset="${i}" style="background:linear-gradient(135deg,${g.c1},${g.c2})" title="渐变预设 ${i + 1}" aria-label="渐变预设 ${i + 1}"></button>`,
+                  ).join("")}
+                </div>
                 <div class="draw-field" data-when="gradient" hidden>
                   <input class="draw-slider" type="range" min="0" max="360" step="1" value="${pen.angle}" data-role="angle" aria-label="渐变角度" />
                   <span class="draw-val" data-val="angle">${pen.angle}°</span>
@@ -1774,6 +1787,23 @@ const description =
           if (gt === "linear" || gt === "radial") {
             pen.gtype = gt;
             syncDrawUI();
+            return;
+          }
+          const gp = t.closest<HTMLButtonElement>("[data-gpreset]")?.dataset.gpreset;
+          if (gp !== undefined) {
+            const g = GRADIENT_PRESETS[Number(gp)];
+            if (g) {
+              pen.c1 = g.c1;
+              pen.c2 = g.c2;
+              pen.angle = g.angle;
+              const c1 = layer.querySelector<HTMLInputElement>('[data-color="c1"]');
+              const c2 = layer.querySelector<HTMLInputElement>('[data-color="c2"]');
+              const ang = layer.querySelector<HTMLInputElement>('[data-role="angle"]');
+              if (c1) c1.value = g.c1;
+              if (c2) c2.value = g.c2;
+              if (ang) ang.value = String(g.angle);
+              syncDrawUI();
+            }
             return;
           }
           const sw = t.closest<HTMLButtonElement>("[data-swatch]")?.dataset.swatch;
